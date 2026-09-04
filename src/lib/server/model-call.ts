@@ -10,11 +10,12 @@ export async function callModel<T extends z.ZodType>(
   route: string,
   prompt: string,
   schema: T,
+  opts?: { maxTokens?: number },
 ): Promise<z.infer<T>> {
   const startedAt = Date.now();
   const response = await getClient().messages.parse({
     model: getModel(),
-    max_tokens: 8000,
+    max_tokens: opts?.maxTokens ?? 8000,
     system: [
       {
         type: "text",

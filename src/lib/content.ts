@@ -90,11 +90,32 @@ export function getRepoContent(repoId: string): RepoContent {
   return content;
 }
 
+export function hasFixture(repoId: string): boolean {
+  return repoId in registry;
+}
+
 export function getLesson(repoId: string, conceptId: string): Lesson | null {
   return getRepoContent(repoId).lessons[conceptId] ?? null;
 }
 
-export function getConceptTitle(repoId: string, conceptId: string): string {
-  const concept = getRepoContent(repoId).model.concepts.find((c) => c.id === conceptId);
-  return concept?.title ?? conceptId;
+// Live journeys carry their model; fixture journeys resolve it from code.
+export function modelForJourney(journey: {
+  repoId: string;
+  model?: RepositoryModel;
+}): RepositoryModel {
+  return journey.model ?? getRepoContent(journey.repoId).model;
+}
+
+export function conceptTitleIn(
+  model: RepositoryModel,
+  conceptId: string,
+): string {
+  return model.concepts.find((c) => c.id === conceptId)?.title ?? conceptId;
+}
+
+export function getConceptTitle(
+  journey: { repoId: string; model?: RepositoryModel },
+  conceptId: string,
+): string {
+  return conceptTitleIn(modelForJourney(journey), conceptId);
 }

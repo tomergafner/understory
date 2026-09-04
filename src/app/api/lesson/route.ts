@@ -1,5 +1,6 @@
-import { getLesson, getRepoContent } from "@/lib/content";
+import { getLesson } from "@/lib/content";
 import { hasApiKey } from "@/lib/server/anthropic";
+import { resolveContent } from "@/lib/server/content-resolver";
 import { callModel } from "@/lib/server/model-call";
 import { buildLessonPrompt } from "@/lib/server/prompts";
 import {
@@ -9,15 +10,23 @@ import {
 import type { LearnerState, Lesson, Question } from "@/lib/types";
 
 export async function POST(req: Request) {
-  let body;
-  try {
-    body = LessonRequestSchema.parse(await req.json());
-    getRepoContent(body.repoId); // throws for unknown repos
-  } catch {
+  const parsed = LessonRequestSchema.safeParse(
+    await req.json().catch(() => null),
+  );
+  if (!parsed.success) {
     return Response.json({ error: "invalid_request" }, { status: 400 });
+  }
+  const body = parsed.data;
+
+  let content;
+  try {
+    content = await resolveContent(body.repoId);
+  } catch {
+    return Response.json({ error: "unknown_repo" }, { status: 404 });
   }
 
   const fixture = () => {
+    if (!content.isFixture) return null;
     const lesson = getLesson(body.repoId, body.conceptId);
     return lesson ? Response.json({ source: "fixture", lesson }) : null;
   };
@@ -40,7 +49,8 @@ export async function POST(req: Request) {
     const gen = await callModel(
       "lesson",
       buildLessonPrompt({
-        repoId: body.repoId,
+        model: content.model,
+        evidence: content.evidence,
         conceptId: body.conceptId,
         goal: body.goal,
         questionStyle: body.questionStyle,
@@ -69,18 +79,17 @@ export async function POST(req: Request) {
       }));
     if (questions.length === 0) throw new Error("no_valid_questions");
 
-    const { evidence } = getRepoContent(body.repoId);
     const lesson: Lesson = {
       conceptId: body.conceptId,
       title: gen.title,
       kicker: gen.kicker,
       paragraphs: gen.paragraphs,
-      excerpt: gen.useExcerpt ? evidence[body.conceptId] : undefined,
+      excerpt: gen.useExcerpt ? content.evidence[body.conceptId] : undefined,
       questions,
     };
     return Response.json({ source: "model", lesson });
   } catch (err) {
-    console.error("lesson: model path failed, using fixture fallback", err);
+    console.error("lesson: model path failed", err);
     return (
       fixture() ?? Response.json({ error: "model_error" }, { status: 502 })
     );

@@ -183,6 +183,28 @@ cost is still cents at demo scale.
 
 ---
 
+## 014 — Agentic repository analysis via web_fetch (2026-09-03)
+
+**Decision:** Live analysis sends only the repository URL and the product's
+purpose; Claude reads the repository itself through Anthropic's web_fetch tool
+(capped at 20 fetches) and returns the curriculum through a strict tool call.
+Our server still validates deterministically first (github.com only, public,
+real, size-capped, commit SHA pinned) and sanitizes the result (dedup ids,
+drop dangling prerequisites) before it becomes state.
+
+**Why:** The model chooses which files to read — better than fixed seed
+heuristics — and the request carries no repository content. Product owner
+preference, and a stronger technical story.
+
+**Alternatives:** Server-side seed-file push (built first, kept as reference);
+custom read-only repo tools (list_directory/read_file) executed by our server.
+
+**Tradeoff:** Less control over what gets read and evidence line numbers are
+the model's estimates; analysis latency is 1-3 minutes. Cached by (repo,
+commit SHA) so it's paid once per commit, shared across all learners.
+
+---
+
 ## 013 — Persistence: jsonb payloads + dual-write with local fallback (2026-09-03)
 
 **Decision:** Four tables (users, journeys, steps, reviews). Keyed columns only

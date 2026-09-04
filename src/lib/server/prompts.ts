@@ -1,5 +1,12 @@
-import { getRepoContent } from "../content";
-import type { Goal, LearnerState, Question, QuestionStyle } from "../types";
+import type {
+  CodeExcerpt,
+  Goal,
+  LearnerState,
+  Question,
+  QuestionStyle,
+  RepositoryModel,
+} from "../types";
+import type { RepoSnapshot } from "./github";
 
 // Prompt context per CLAUDE.md §6: pedagogy rules + compact repo model +
 // learner state + recent evidence. Never the whole conversation.
@@ -22,8 +29,11 @@ Rules:
 - Feedback is brief and evidence-based. Never include your private reasoning.
 - Adaptation messages must name what the learner's answer revealed ("you said X, which suggests Y") and where the path goes next and why.`;
 
-function curriculumBlock(repoId: string, goal: Goal, learner: LearnerState): string {
-  const { model } = getRepoContent(repoId);
+function curriculumBlock(
+  model: RepositoryModel,
+  goal: Goal,
+  learner: LearnerState,
+): string {
   const rows = model.concepts.map((c) => {
     const status = learner.conceptStatus[c.id] ?? "untaught";
     const mastery = learner.mastery[c.id];
@@ -38,14 +48,15 @@ function curriculumBlock(repoId: string, goal: Goal, learner: LearnerState): str
 }
 
 export function buildLessonPrompt(args: {
-  repoId: string;
+  model: RepositoryModel;
+  evidence: Record<string, CodeExcerpt>;
   conceptId: string;
   goal: Goal;
   questionStyle: QuestionStyle;
   learner: LearnerState;
   recentAdaptation?: string | null;
 }): string {
-  const { model, evidence } = getRepoContent(args.repoId);
+  const { model, evidence } = args;
   const concept = model.concepts.find((c) => c.id === args.conceptId);
   const excerpt = evidence[args.conceptId];
 
@@ -57,7 +68,7 @@ export function buildLessonPrompt(args: {
         : "mix of multiple choice and at most one free-form";
 
   return [
-    curriculumBlock(args.repoId, args.goal, args.learner),
+    curriculumBlock(model, args.goal, args.learner),
     args.recentAdaptation
       ? `Previous step's adaptation decision (continue its thread): ${args.recentAdaptation}`
       : null,
@@ -72,7 +83,7 @@ export function buildLessonPrompt(args: {
 }
 
 export function buildAssessPrompt(args: {
-  repoId: string;
+  model: RepositoryModel;
   conceptId: string;
   lessonTitle: string;
   goal: Goal;
@@ -94,7 +105,7 @@ export function buildAssessPrompt(args: {
   });
 
   return [
-    curriculumBlock(args.repoId, args.goal, args.learner),
+    curriculumBlock(args.model, args.goal, args.learner),
     `The learner just completed the lesson "${args.lessonTitle}" on concept ${args.conceptId}. Their answers:`,
     questionRows.join("\n"),
     `Now: grade the free-form answers, produce the assessment, and decide the next step.
@@ -104,8 +115,41 @@ export function buildAssessPrompt(args: {
   ].join("\n\n");
 }
 
+// Stage B of CLAUDE.md §5: one structured analysis from the deterministic
+// snapshot. The model sees only what ingestion collected.
+export function buildAnalysisPrompt(snapshot: RepoSnapshot): string {
+  const treeListing = snapshot.tree
+    .map((e) => `${e.path} (${e.size}b)`)
+    .join("\n");
+  const seedBlocks = snapshot.seeds
+    .map((s) => `--- FILE: ${s.path} ---\n${s.content}`)
+    .join("\n\n");
+
+  return [
+    `Analyze this repository and produce a learning curriculum for it.
+
+Repository: ${snapshot.owner}/${snapshot.repo} @ ${snapshot.commitSha.slice(0, 7)}
+GitHub description: ${snapshot.description || "(none)"}
+Primary language: ${snapshot.primaryLanguage ?? "unknown"}
+Files (filtered${snapshot.truncatedTree ? ", truncated" : ""}; ${snapshot.treeTotal} total):
+${treeListing}`,
+    `Seed file contents (the ONLY code you have read):
+
+${seedBlocks}`,
+    `Produce 6-16 curriculum concepts in teaching order, spanning level 1 (what is this) through level 5 (design tradeoffs); include level 6-7 (critical code paths, contribution readiness) only where the seed files give you real material.
+
+Rules:
+- ids kebab-case and unique; prerequisites reference listed ids only.
+- summary: one concrete sentence. Separate observed facts from inference — say "likely" when inferring maintainer intent.
+- goals: which learner goals (understand/use/architecture/contribute) each concept serves. Early concepts usually serve all; deep internals usually architecture/contribute.
+- weight: 1-5 importance toward understanding this repo.
+- evidence: where a seed file contains a genuinely illustrative snippet, quote a SMALL excerpt (5-20 lines) VERBATIM with its exact path. If unsure of line numbers, estimate conservatively. NEVER quote from files you were not given; use null instead.
+- description: one crisp sentence, no marketing language.`,
+  ].join("\n\n");
+}
+
 export function buildReviewPrompt(args: {
-  repoId: string;
+  model: RepositoryModel;
   goal: Goal;
   kind: "last_lesson" | "broad";
   learner: LearnerState;
@@ -117,7 +161,7 @@ export function buildReviewPrompt(args: {
       : `Broad review across the journey: pick the 1-2 taught concepts most worth re-testing — prioritize low mastery, low confidence, and stale lastTestedAt. Only concepts whose status is not "untaught" are eligible.`;
 
   return [
-    curriculumBlock(args.repoId, args.goal, args.learner),
+    curriculumBlock(args.model, args.goal, args.learner),
     target,
     `Rules: multiple choice only (reviews are quick checks). Fresh questions — test understanding from a new angle, don't repeat lesson phrasing. The "reason" field is shown to the learner and should say why these concepts were chosen.`,
   ].join("\n\n");

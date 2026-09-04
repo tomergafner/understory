@@ -76,6 +76,44 @@ export const ReviewPlanSchema = z.object({
 });
 export type ReviewPlanOut = z.infer<typeof ReviewPlanSchema>;
 
+// ---- Repository analysis (Phase 5) ----
+
+export const GeneratedConceptSchema = z.object({
+  id: z.string().describe("kebab-case, unique"),
+  title: z.string(),
+  summary: z.string().describe("one sentence used in prompts and the UI"),
+  level: z.number().int().min(1).max(7).describe("curriculum level"),
+  weight: z.number().int().min(1).max(5).describe("importance for coverage"),
+  goals: z
+    .array(z.enum(["understand", "use", "architecture", "contribute"]))
+    .min(1)
+    .describe("which learner goals include this concept"),
+  prerequisites: z.array(z.string()).describe("ids of listed concepts only"),
+  evidence: z
+    .object({
+      path: z.string().describe("a provided seed file path, verbatim"),
+      startLine: z.number().int(),
+      endLine: z.number().int(),
+      code: z.string().describe("small excerpt copied from that seed file"),
+    })
+    .nullable(),
+});
+
+export const GeneratedRepoModelSchema = z.object({
+  description: z.string().describe("one crisp sentence about the project"),
+  languages: z.array(z.string()).min(1),
+  concepts: z
+    .array(GeneratedConceptSchema)
+    .min(6)
+    .max(16)
+    .describe("teaching order; levels 1-5 covered, 6-7 only if evidence allows"),
+});
+export type GeneratedRepoModel = z.infer<typeof GeneratedRepoModelSchema>;
+
+export const AnalyzeRequestSchema = z.object({
+  url: z.string().min(1),
+});
+
 // ---- Request bodies (inbound validation) ----
 
 const LearnerSchema = z.object({

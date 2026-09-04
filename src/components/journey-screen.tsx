@@ -8,17 +8,19 @@ import {
   fetchReviewPlan,
   type ContentSource,
 } from "@/lib/client-api";
-import { getConceptTitle, getRepoContent } from "@/lib/content";
+import { getConceptTitle, modelForJourney } from "@/lib/content";
 import { computeCoverage } from "@/lib/coverage";
 import {
   applyStepOutcome,
   lastTaughtConceptId,
   newDemoJourney,
+  nextUntaughtConcept,
   submitReview,
   type ReviewPlan,
 } from "@/lib/engine";
 import { nowMs, timeAgo } from "@/lib/time";
 import type {
+  Goal,
   LearningJourney,
   Lesson,
   Question,
@@ -84,7 +86,7 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
 
   const coverage = useMemo(() => {
     if (!journey) return null;
-    const { model } = getRepoContent(journey.repoId);
+    const model = modelForJourney(journey);
     return computeCoverage(model, journey.goal, journey.learner);
   }, [journey]);
 
@@ -105,10 +107,10 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
     );
   }
 
-  const { model } = getRepoContent(journey.repoId);
+  const model = modelForJourney(journey);
   const grewNote =
     coverage.addedByAdaptation.length > 0
-      ? `path grew: +${getConceptTitle(journey.repoId, coverage.addedByAdaptation[0])}`
+      ? `path grew: +${getConceptTitle(journey, coverage.addedByAdaptation[0])}`
       : null;
 
   function goToConcept(conceptId: string | null) {
@@ -147,10 +149,32 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
         {view.kind === "onboard" && (
           <OnboardView
             journey={journey}
-            onStart={(style) => {
-              const updated = { ...journey, questionStyle: style };
+            onStart={(goal, style) => {
+              const goalLabel =
+                GOALS.find((g) => g.id === goal)?.label ?? journey.goalLabel;
+              const firstId = nextUntaughtConcept(
+                modelForJourney(journey),
+                goal,
+                journey.learner,
+              );
+              const updated: LearningJourney = {
+                ...journey,
+                goal,
+                goalLabel,
+                questionStyle: style,
+                learner: {
+                  ...journey.learner,
+                  recommendedNext: firstId
+                    ? {
+                        action: "advance",
+                        conceptId: firstId,
+                        reason: "Starting at the beginning of the curriculum.",
+                      }
+                    : null,
+                },
+              };
               upsert(updated);
-              goToConcept(journey.learner.recommendedNext?.conceptId ?? null);
+              goToConcept(firstId);
             }}
           />
         )}
@@ -275,7 +299,7 @@ function AnalysisView({ onDone }: { onDone: () => void }) {
   );
 }
 
-const GOALS = [
+export const GOALS: { id: Goal; label: string }[] = [
   { id: "understand", label: "Understand what it does" },
   { id: "use", label: "Learn to use and configure it" },
   { id: "architecture", label: "Understand the architecture" },
@@ -287,9 +311,12 @@ function OnboardView({
   onStart,
 }: {
   journey: LearningJourney;
-  onStart: (style: QuestionStyle) => void;
+  onStart: (goal: Goal, style: QuestionStyle) => void;
 }) {
   const [style, setStyle] = useState<QuestionStyle>(journey.questionStyle);
+  const [goal, setGoal] = useState<Goal>(journey.goal);
+  // The scripted demo only has an architecture path; live repos unlock all goals.
+  const locked = !journey.model;
 
   return (
     <div className="anim-rise mx-auto max-w-lg pt-10">
@@ -306,8 +333,8 @@ function OnboardView({
         </legend>
         <div className="mt-3 flex flex-col gap-2">
           {GOALS.map((g) => {
-            const selected = g.id === journey.goal;
-            const disabled = g.id !== "architecture";
+            const selected = g.id === goal;
+            const disabled = locked && g.id !== journey.goal;
             return (
               <label
                 key={g.id}
@@ -316,7 +343,7 @@ function OnboardView({
                     ? "border-moss bg-moss/10 font-medium text-moss-deep"
                     : disabled
                       ? "cursor-not-allowed border-line text-ink-faint/60"
-                      : "border-line text-ink-soft"
+                      : "cursor-pointer border-line text-ink-soft hover:border-ink-faint"
                 }`}
               >
                 <input
@@ -324,7 +351,7 @@ function OnboardView({
                   name="goal"
                   checked={selected}
                   disabled={disabled}
-                  readOnly
+                  onChange={() => setGoal(g.id)}
                   className="accent-[#3e7c4f]"
                 />
                 {g.label}
@@ -332,9 +359,12 @@ function OnboardView({
             );
           })}
         </div>
-        <p className="mt-2 text-[0.72rem] text-ink-faint">
-          The demo teaches the architecture path; other goals open up with live analysis.
-        </p>
+        {locked && (
+          <p className="mt-2 text-[0.72rem] text-ink-faint">
+            The demo teaches the architecture path; all goals open up when you
+            analyze a repository live.
+          </p>
+        )}
       </fieldset>
 
       <fieldset className="mt-6">
@@ -363,7 +393,7 @@ function OnboardView({
       </fieldset>
 
       <button
-        onClick={() => onStart(style)}
+        onClick={() => onStart(goal, style)}
         className="mt-8 rounded-lg bg-moss px-6 py-3 text-[0.88rem] font-semibold text-cream transition-colors hover:bg-moss-deep"
       >
         Start learning
@@ -398,7 +428,7 @@ function LessonFlow({
   const [grading, setGrading] = useState(false);
   const [gradeError, setGradeError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const { model } = getRepoContent(journey.repoId);
+  const model = modelForJourney(journey);
 
   useEffect(() => {
     let cancelled = false;
@@ -608,7 +638,7 @@ function FeedbackView({
   onContinue: () => void;
 }) {
   const nextTitle = step.nextConceptId
-    ? getConceptTitle(journey.repoId, step.nextConceptId)
+    ? getConceptTitle(journey, step.nextConceptId)
     : null;
 
   return (
@@ -703,7 +733,7 @@ function ResumeView({
 }) {
   const next = journey.learner.recommendedNext;
   const nextTitle = next?.conceptId
-    ? getConceptTitle(journey.repoId, next.conceptId)
+    ? getConceptTitle(journey, next.conceptId)
     : null;
 
   return (
@@ -852,7 +882,7 @@ function ReviewFlow({
 
   const title =
     plan.kind === "last_lesson"
-      ? `Quick review · ${getConceptTitle(journey.repoId, plan.conceptIds[0])}`
+      ? `Quick review · ${getConceptTitle(journey, plan.conceptIds[0])}`
       : "Review across your journey";
 
   return (
@@ -913,7 +943,7 @@ function ReviewResultView({
 }) {
   const next = journey.learner.recommendedNext;
   const nextTitle = next?.conceptId
-    ? getConceptTitle(journey.repoId, next.conceptId)
+    ? getConceptTitle(journey, next.conceptId)
     : null;
 
   return (

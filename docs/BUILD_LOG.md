@@ -117,6 +117,26 @@ verification of model mode. Then Phase 4 (Postgres persistence).
 reusing a journey id with fresh state would resurface old step rows without
 the createdAt guard.
 
+## Phase 5 — Live GitHub ingestion + agentic analysis (2026-09-03, branch)
+
+**What works (on branch phase5-live-ingestion, pending Phase 4 sign-off):**
+- Deterministic validation: URL parse/normalize, public+real check, size cap,
+  commit SHA pinning — friendly failure messages for every §15 case.
+- Agentic analysis: request = URL + product purpose; Claude reads the repo via
+  web_fetch (≤20 fetches) and submits the curriculum through a strict tool;
+  sanitized deterministically; persisted by (repoId, commitSha); reused across
+  learners and visits.
+- The loop routes resolve content from fixtures OR the analyses table; live
+  journeys carry their RepositoryModel so client coverage/sidebar work
+  unchanged (and in localStorage fallback mode).
+- Onboarding unlocks all four goals for live repos; home screen runs the
+  full analyze flow with honest 1-3 minute progress copy.
+- Seed-push ingestion path kept as engineering fallback (tested, unused).
+- 42 tests; typecheck/lint/build/e2e all green.
+
+**What remains:** merge after Phase 4 sign-off; prod verification of a real
+analysis; Phase 6 polish.
+
 **Notable failure/learning:**
 - create-next-app's generated CLAUDE.md pointer clobbered the master
   instructions during scaffold move — caught immediately because Phase 0 was

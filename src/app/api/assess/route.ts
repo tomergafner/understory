@@ -2,18 +2,26 @@ import { getRepoContent } from "@/lib/content";
 import { genericOutcome, nextUntaughtConcept } from "@/lib/engine";
 import { gradeFreeFixture, gradeMc } from "@/lib/grading";
 import { hasApiKey } from "@/lib/server/anthropic";
+import { resolveContent } from "@/lib/server/content-resolver";
 import { callModel } from "@/lib/server/model-call";
 import { buildAssessPrompt } from "@/lib/server/prompts";
 import { AssessRequestSchema, StepDecisionSchema } from "@/lib/server/schemas";
 import type { LearnerState, Question, StepOutcome } from "@/lib/types";
 
 export async function POST(req: Request) {
-  let body;
-  try {
-    body = AssessRequestSchema.parse(await req.json());
-    getRepoContent(body.repoId);
-  } catch {
+  const parsed = AssessRequestSchema.safeParse(
+    await req.json().catch(() => null),
+  );
+  if (!parsed.success) {
     return Response.json({ error: "invalid_request" }, { status: 400 });
+  }
+  const body = parsed.data;
+
+  let content;
+  try {
+    content = await resolveContent(body.repoId);
+  } catch {
+    return Response.json({ error: "unknown_repo" }, { status: 404 });
   }
 
   const questions = body.questions as Question[];
@@ -31,10 +39,18 @@ export async function POST(req: Request) {
       if (q.kind === "free")
         correct[q.id] = gradeFreeFixture(q, body.answers[q.id] ?? "");
     }
-    const decide = getRepoContent(body.repoId).decide[body.conceptId];
+    const decide = content.isFixture
+      ? getRepoContent(body.repoId).decide[body.conceptId]
+      : undefined;
     return decide
       ? { ...decide(correct), correct }
-      : genericOutcome(body.repoId, body.goal, learner, body.conceptId, correct);
+      : genericOutcome(
+          content.model,
+          body.goal,
+          learner,
+          body.conceptId,
+          correct,
+        );
   };
 
   if (!hasApiKey()) {
@@ -45,7 +61,7 @@ export async function POST(req: Request) {
     const decision = await callModel(
       "assess",
       buildAssessPrompt({
-        repoId: body.repoId,
+        model: content.model,
         conceptId: body.conceptId,
         lessonTitle: body.lessonTitle,
         goal: body.goal,
@@ -70,10 +86,12 @@ export async function POST(req: Request) {
 
     // Guardrail: the next concept must exist; otherwise fall back to the
     // deterministic choice (state transitions should not be probabilistic).
-    const { model } = getRepoContent(body.repoId);
     let nextConceptId = decision.nextConceptId;
-    if (nextConceptId && !model.concepts.some((c) => c.id === nextConceptId)) {
-      nextConceptId = nextUntaughtConcept(body.repoId, body.goal, {
+    if (
+      nextConceptId &&
+      !content.model.concepts.some((c) => c.id === nextConceptId)
+    ) {
+      nextConceptId = nextUntaughtConcept(content.model, body.goal, {
         ...learner,
         conceptStatus: {
           ...learner.conceptStatus,

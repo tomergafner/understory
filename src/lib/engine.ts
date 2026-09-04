@@ -4,6 +4,7 @@ import type {
   Lesson,
   LearningJourney,
   Question,
+  RepositoryModel,
   ReviewRecord,
   StepOutcome,
   StepRecord,
@@ -33,6 +34,45 @@ export function newDemoJourney(now: number): LearningJourney {
         conceptId: "middleware-pipeline",
         reason: "Start with the mental model everything else builds on.",
       },
+    },
+  };
+}
+
+// Journey for a freshly analyzed live repository; goal is finalized during
+// onboarding (all four goals are available, unlike the fixture demo).
+export function newLiveJourney(
+  model: RepositoryModel,
+  questionStyle: LearningJourney["questionStyle"],
+  now: number,
+): LearningJourney {
+  const goal = "architecture" as const;
+  const firstId = nextUntaughtConcept(model, goal, {
+    conceptStatus: {},
+    mastery: {},
+    recommendedNext: null,
+  });
+  return {
+    id: model.id.replace(/[:/]/g, "-"), // gh:owner/repo -> gh-owner-repo
+    repoId: model.id,
+    model,
+    repoDisplayName: `${model.owner}/${model.name}`,
+    goal,
+    goalLabel: "Understand the architecture",
+    questionStyle,
+    createdAt: now,
+    lastActiveAt: now,
+    steps: [],
+    reviews: [],
+    learner: {
+      conceptStatus: {},
+      mastery: {},
+      recommendedNext: firstId
+        ? {
+            action: "advance",
+            conceptId: firstId,
+            reason: "Starting at the beginning of the curriculum.",
+          }
+        : null,
     },
   };
 }
@@ -85,11 +125,10 @@ export interface SubmitResult {
 // The first in-scope concept the learner hasn't been taught — the
 // deterministic fallback when a model decision is missing or invalid.
 export function nextUntaughtConcept(
-  repoId: string,
+  model: RepositoryModel,
   goal: LearningJourney["goal"],
   learner: LearningJourney["learner"],
 ): string | null {
-  const { model } = getRepoContent(repoId);
   const candidate = model.concepts.find((c) => {
     const status = learner.conceptStatus[c.id] ?? "untaught";
     return c.goals.includes(goal) && status === "untaught";
@@ -151,7 +190,7 @@ export function applyStepOutcome(
 // Generic outcome for concepts without a scripted decide() — keeps the
 // fixture fallback working at any curriculum depth.
 export function genericOutcome(
-  repoId: string,
+  model: RepositoryModel,
   goal: LearningJourney["goal"],
   learner: LearningJourney["learner"],
   conceptId: string,
@@ -159,7 +198,7 @@ export function genericOutcome(
 ): StepOutcome {
   const wrong = Object.values(correct).filter((v) => !v).length;
   const allRight = wrong === 0;
-  const nextId = nextUntaughtConcept(repoId, goal, {
+  const nextId = nextUntaughtConcept(model, goal, {
     ...learner,
     conceptStatus: { ...learner.conceptStatus, [conceptId]: "understood" },
   });
@@ -204,7 +243,7 @@ export function submitLesson(
   const outcome: StepOutcome = decide
     ? { ...decide(correct), correct }
     : genericOutcome(
-        journey.repoId,
+        content.model,
         journey.goal,
         journey.learner,
         lesson.conceptId,
