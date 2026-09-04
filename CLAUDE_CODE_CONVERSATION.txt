@@ -144,7 +144,7 @@
   which of these risks you want to accept versus fix, and I'll update CLAUDE.md
   accordingly.
 
-✻ Cooked for 1m 25s
+✻ Churned for 1m 25s
 
 ❯ /superpowers:brainstorming read the homework under assets and then check the  
 CLAUDE.md file and evaluate if this project will satisfy the take home          
@@ -255,7 +255,7 @@ assignment that was required. flag the risks
   Only CLAUDE.md is touched — no code, no doc files created yet (those come in
   their phases). Shall I apply this amendment?
 
-✻ Baked for 1m 39s
+✻ Worked for 1m 39s
 
 ❯ /model 
   ⎿  Kept model as Fable 5
@@ -1257,7 +1257,7 @@ assignment that was required. flag the risks
   STOPPING per the phase ritual — awaiting your feedback on the checklist above
   and your direction to begin Phase 1 (UX prototype with fixtures).
 
-✻ Worked for 4m 5s
+✻ Cogitated for 4m 5s
 
 ❯ Lets go with Phase 1 for now. keep in mind  we might make adjustments to the  
   data structure later                                                          
@@ -2871,7 +2871,7 @@ assignment that was required. flag the risks
   and I'll continue with the domain, the CI deploy token, and production
   verification without needing anything else from you.
 
-✻ Baked for 16m 48s
+✻ Cogitated for 16m 48s
 
 ⏺ Monitor event: "railway up: sign-in and deploy progress"
 
@@ -2930,7 +2930,7 @@ assignment that was required. flag the risks
   watch CI go green through checks → e2e → deploy, and verify the production
   demo path.
 
-✻ Cogitated for 2m 18s
+✻ Churned for 2m 18s
 
 ⏺ Background command "Deploy to Railway (creates project, signs in via browser
 if needed)" completed (exit code 0)
@@ -3079,7 +3079,7 @@ if needed)" completed (exit code 0)
   private), Railway project renamed to understory with a public domain,
   /api/health, the CI workflow, and docs updated.
 
-✻ Cogitated for 1m 7s
+✻ Worked for 1m 7s
 
 ⏺ Monitor event: "waiting for RAILWAY_TOKEN secret on the repo"
 ⏺ Monitor "waiting for RAILWAY_TOKEN secret on the repo" stream ended
@@ -3091,7 +3091,7 @@ if needed)" completed (exit code 0)
 ⏺ CI run 33827825105 is executing — checks and e2e in parallel, then the gated
   Railway deploy with health verification. I'll report the moment it completes.
 
-✻ Worked for 20s
+✻ Brewed for 20s
 
 ※ recap: Building Understory, the adaptive repo-tutor take-home; Phase 2 puts the fixture prototype live on Railway behind CI. The pipeline run for the first gated deploy is executing now; next I confirm it's green and give you the phase summary. (disable recaps in /config)
 
@@ -3112,7 +3112,7 @@ if needed)" completed (exit code 0)
   the production health endpoint. The background watcher will report the moment
   it lands; deploys typically take a couple of minutes.
 
-✻ Brewed for 8s
+✻ Sautéed for 8s
 
 ❯ check in parallel the DNS as I setup a custom domain understory.chat that I   
   bought on cloudflare.                                                         
@@ -3218,7 +3218,7 @@ if needed)" completed (exit code 0)
   generation/grading/next-step decisions on the bundled demo repo — the thesis
   phase). You'll need an ANTHROPIC_API_KEY for Railway when we get there.
 
-✻ Cooked for 2m 7s
+✻ Baked for 2m 7s
 
 ⏺ Monitor event: "understory.chat TLS certificate issuance and health"
 
@@ -3278,7 +3278,7 @@ if needed)" completed (exit code 0)
   that phase's deploy we'll need an ANTHROPIC_API_KEY set on Railway — you can
   add it when we get there with railway variable set.
 
-✻ Crunched for 54s
+✻ Worked for 54s
 
 ❯ lets build  Phase 3 — the real adaptive tutorial loop. I will setup on        
   railway the ANTHROPIC_API_KEY whne you tell me.                               
@@ -5097,7 +5097,7 @@ if needed)" completed (exit code 0)
   model, invalid next-concept decisions fall back deterministically, schema
   rejections degrade to fixtures).
 
-✻ Crunched for 17m 42s
+✻ Brewed for 17m 42s
 
 ❯ I setup ANTHROPIC_API_KEY. please check that it works and report which model  
   and effort it is using and continue to complete this phase. once completed    
@@ -5146,7 +5146,7 @@ if needed)" completed (exit code 0)
   "model", report the exact model and effort in use, and hand you the phase
   summary plus your manual test checklist.
 
-✻ Sautéed for 1m 7s
+✻ Brewed for 1m 7s
 
 ❯ I applied the changes, check again                                            
 
@@ -5162,7 +5162,7 @@ if needed)" completed (exit code 0)
   live with your key, I'll probe production for a model-generated lesson and
   report the model + effort in use.
 
-✻ Cooked for 24s
+✻ Sautéed for 24s
 
 ❯ what is the status of the deployment?                                         
 
@@ -5199,7 +5199,7 @@ if needed)" completed (exit code 0)
   My watcher fires the moment the run completes — then I'll immediately verify
   production serves a real model-generated lesson and report the model and
   effort.
-✻ Churned for 10s
+✻ Brewed for 10s
 
 ※ recap: We're building Understory's Phase 3, the real Claude-powered tutoring loop, now deploying to production with your API key in place. Next: once CI finishes I verify production serves model-generated lessons, then you test manually. (disable recaps in /config)
 
@@ -5805,7 +5805,7 @@ if needed)" completed (exit code 0)
   fresh GET (real resume), and that the two users' data stays isolated. After
   that verification you get the phase summary and your manual checklist.
 
-✻ Sautéed for 6m 36s
+✻ Cogitated for 6m 36s
 
 ❯ check the deployment status.                                                  
 
@@ -5822,7 +5822,7 @@ if needed)" completed (exit code 0)
   verification (two "browsers", isolated seeds, PUT-then-GET resume) and close
   the phase for your manual testing.
 
-✻ Sautéed for 17s
+✻ Churned for 17s
 
 ※ recap: Building Understory, the adaptive repo tutor for your Anthropic take-home. Phase 4 (Postgres persistence) is code-complete and deploying through CI right now; once it lands I'll verify durable resume in production with two simulated browsers, then hand you the manual test checklist.
 
@@ -6125,7 +6125,7 @@ if needed)" completed (exit code 0)
   only, no source files), say so and I'll tighten the seed selector. Otherwise
   I'll continue building the analyze route on this design.
 
-✻ Brewed for 4m 6s
+✻ Baked for 4m 6s
 
 ⏺ Background command "Commit, push, and watch Phase 4 CI run" completed (exit
 code 0)
@@ -7343,7 +7343,7 @@ code 0)
   — including 014 recording the agentic pivot and why). Take your time with the
   testing.
 
-✻ Cogitated for 8m 36s
+✻ Baked for 8m 36s
 
 ❯ I tested phase 4 and it works. merge PR #1 and lets                           
 
@@ -7359,7 +7359,7 @@ code 0)
   the whole loop works on a freshly learned repo. Then it's your turn with a
   repo you know well — the best judge of curriculum quality.
 
-✻ Churned for 20s
+✻ Brewed for 20s
 
 ❯ list 5 midium size repos that I will test manually once 5 is completed and    
   deployed. include https://github.com/mavlink/qgroundcontrol as an example, a  
@@ -7830,7 +7830,7 @@ code 0)
   Once the deploy lands, I'll verify the full analyze→lesson flow in production
   and hand you the keys for manual testing with the list above.
 
-✻ Churned for 5m 56s
+✻ Cooked for 5m 56s
 
 ※ recap: Building Understory, the adaptive GitHub repo tutor, now on Phase 5 live repo analysis. The async-analyze fix and goal unlock are deploying; next I verify a real analysis in production, then you manually test the five listed repos.
 
@@ -7874,7 +7874,7 @@ code 0)
   live-analysis flow end-to-end in production — the async protocol this time —
   and then hand production over to you for the five-repo manual test.
 
-✻ Sautéed for 51s
+✻ Churned for 51s
 
 ❯ got "Something went wrong reaching the analyzer — please try again". check    
   the logs.  also, to analyze the repo takes a long time 1-3 minutes. this is   
@@ -8727,7 +8727,7 @@ code 0)
   I'll verify the full two-stage flow in production the moment this deploy
   completes, then hand you the five-repo test list for real.
 
-✻ Baked for 5m 42s
+✻ Brewed for 5m 42s
 
 ⏺ Background command "Push CI concurrency fix and watch final deploy" completed
 (exit code 0)
@@ -8737,7 +8737,7 @@ code 0)
   the final pipeline (b715e1d8h): local e2e → commit → push → CI → deploy. I'll
   verify the two-stage analysis in production as soon as it completes.
 
-✻ Sautéed for 6s
+✻ Worked for 6s
 
 ❯ /effort                                                                       
   ⎿  Set effort level to ultracode (this session only): xhigh + dynamic workflow
@@ -8770,7 +8770,7 @@ code 0)
   stage-1 timing, starter quality, the poll-to-deep upgrade, and caching — and
   fold those results into the final gap list alongside the workflow's confirmed
   findings. Everything converges into one bulleted report with mitigations.
-✻ Baked for 3m 4s
+✻ Brewed for 3m 4s
 
 ⏺ Background command "Run e2e, commit, push, and watch CI" completed (exit code
 0)
@@ -8810,7 +8810,7 @@ code 0)
   six-dimension audit workflow with adversarial verification. The full gap list
   with mitigations lands when they're in.
 
-✻ Cogitated for 1m 30s
+✻ Baked for 1m 30s
 
 ※ recap: We're auditing the deployed repo-tutor take-home for demo-breaking gaps; production probes of the new two-stage analysis all passed. Next: collect the multi-agent audit results and the chalk deep-analysis check, then give you the full gap list with mitigations.
 
@@ -8941,7 +8941,7 @@ demo-breaking gaps" completed · 12m 4s
   Full details (file:line evidence, per-finding verifier reasoning) are
   preserved in the audit output. Say the word and I'll execute P0 immediately.
 
-✻ Cogitated for 16m 45s
+✻ Churned for 16m 45s
 
 ⏺ Monitor event: "chalk/chalk deep analysis completion"
 
@@ -8967,7 +8967,7 @@ demo-breaking gaps" completed · 12m 4s
   goal persistence, live-analysis copy, goal dead-end guard, restart race —
   roughly one to two hours, each with a test where the audit showed the gap.
 
-✻ Baked for 12s
+✻ Worked for 12s
 
 ❯ lets execute P0. I will in parallel of your changes, update GITHUB_TOKEN.     
 
@@ -10068,7 +10068,7 @@ demo-breaking gaps" completed · 12m 4s
   production — at that point the five-repo manual test is genuinely ready for
   you.
 
-✻ Churned for 5m 53s
+✻ Brewed for 5m 53s
 
 ※ recap: Building Understory, the adaptive GitHub-repo tutor for your Anthropic take-home; audit-driven P0 and P1 demo fixes are deployed and verified. Next: confirm chalk's deep analysis completes in production, then you manually test the five live repos.
 
@@ -10566,7 +10566,7 @@ demo-breaking gaps" completed · 12m 4s
   assignment's ~5-minute video (script comes in Phase 7) and your five-repo
   manual test — production is ready for it once I confirm the deep lifecycle.
 
-✻ Worked for 5m 4s
+✻ Baked for 5m 4s
 
 ⏺ Background command "Commit cleanup, push, watch CI" completed (exit code 0)
 
@@ -10580,7 +10580,7 @@ demo-breaking gaps" completed · 12m 4s
   five-repo manual test and the home page will greet you in its new minimal
   form.
 
-✻ Baked for 25s
+✻ Crunched for 25s
 
 ※ recap: Building Understory, the adaptive repo-tutor take-home, now live at understory.chat. Waiting for the final deploy (home cleanup plus rationale draft) to finish, then I verify the deep-analysis lifecycle in production before your five-repo manual test.
 
@@ -10604,7 +10604,7 @@ demo-breaking gaps" completed · 12m 4s
   onboarding, and all P0+P1 hardening. I'll report the moment the deep lifecycle
   completes — that's the last gate before your five-repo manual test.
 
-✻ Crunched for 41s
+✻ Cooked for 41s
 
 ❯ I updated the DESIGN RATIONALE. commit it please                              
 
@@ -10619,4 +10619,443 @@ demo-breaking gaps" completed · 12m 4s
   finally verifying undisturbed. The moment the monitor reports the deep pass
   complete, I'll push this commit and report the full verification results.
 
-✻ Cooked for 13s
+✻ Worked for 13s
+
+❯ /export CLAUDE_CODE_CONVERSATION.txt                                          
+  ⎿  Conversation exported to:
+     /Users/tomergafner/repos/home_assignment/CLAUDE_CODE_CONVERSATION.txt
+
+❯ commit that as well                                                           
+
+  Listed 1 directory, ran 1 shell command (ctrl+o to expand)
+
+⏺ Committed (a964792) — I scanned the 587KB transcript for secret patterns first
+  (API keys, GitHub tokens, JWTs): clean, as expected since every credential in
+  this session went through dashboards or prompted secret stores rather than
+  the conversation.
+
+  Two commits are now queued locally (your rationale edits + the transcript),
+  still held back from pushing until the deep-analysis monitor reports — then
+  one push ships both, and that deploy can't hurt anything since the
+  verification will already be done. Both assignment deliverables — the design
+  rationale and the AI transcript — are now in the repo; the remaining
+  deliverable is the ~5-minute video (script drafting is part of the submission
+  phase whenever you're ready).
+
+✻ Cooked for 20s
+
+❯ commit everything and push                                                    
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Pushed — both commits (b2400c1 rationale edits, a964792 transcript) are on
+  their way through CI, and the working tree is otherwise clean; everything is
+  committed.
+
+  Transparency note: per your instruction this push ends the quiet window, so
+  the in-flight chalk deep job will die with the container swap once the deploy
+  lands. That's fine — this is the last pending change, so the post-deploy
+  window is genuinely quiet. As soon as CI completes I'll restart the
+  deep-analysis verification one final time and let it run to completion
+  undisturbed, then report the full lifecycle result and clear you for the
+  five-repo manual test.
+
+✻ Brewed for 21s
+
+※ recap: Building Understory, the adaptive GitHub-repo tutor for your Anthropic take-home; all fixes and deliverables are pushed and deploying now. Next: after CI lands, I rerun the deep-analysis verification, then you manually test the five repos.
+
+⏺ Monitor event: "quiet-window: chalk deep analysis lifecycle"
+
+⏺ Noted — the monitor expired with chalk still partial after 15 minutes. Two
+  possible readings: the deep agentic pass legitimately takes that long (Fable
+  at medium effort with up to 20 web fetches and a multi-turn loop — plausible),
+  or it's dying silently with container restarts (the push mid-window muddies
+  the signal). The good news: the server logs each model turn, so once this
+  deploy lands I can distinguish the two directly — progressing analyze turn
+  entries in the logs means it's slow-but-alive, absence means it's dying.
+
+  Worth saying: even if deep analysis takes 15–20 minutes on some repos, the
+  two-stage UX absorbs it — the learner is already deep in starter-curriculum
+  lessons, and the merge simply arrives later. The demo risk isn't the latency;
+  it's only ever the silent-death case, which the logs will now settle.
+  Diagnosis continues the moment CI reports.
+
+✻ Cooked for 26s
+
+⏺ Monitor "quiet-window: chalk deep analysis lifecycle" stream ended
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Update(src/lib/server/analyze.ts)
+  ⎿  Added 6 lines, removed 1 line
+      170  
+      171    let nudged = false;
+      172    for (let turn = 0; turn < 10; turn++) {
+      173 -    const response = await getClient().messages.create({      
+      173 +    console.log(JSON.stringify({ at: "analyze", turn, repo: ar
+          +gs.repoId ?? `${args.owner}/${args.repo}` }));                
+      174 +    // Streaming is required here: a turn can run a long serve
+          +r-side web_fetch                                              
+      175 +    // loop, and non-streaming requests hit the SDK's ~10-minu
+          +te timeout — the                                              
+      176 +    // deep pass silently never completed before this.        
+      177 +    const stream = getClient().messages.stream({              
+      178        model: getModel(),
+      179        max_tokens: 16000,
+      180        system: [
+     ...
+      188        tools,
+      189        output_config: { effort: getEffort() },
+      190      });
+      191 +    const response = await stream.finalMessage();             
+      192      logUsage("analyze", startedAt, response.usage);
+      193  
+      194      if (response.stop_reason === "refusal") throw new Error("m
+           odel_refusal");
+
+⏺ Background command "Push both commits and watch CI" completed (exit code 0)
+
+⏺ Update(src/lib/server/analyze.ts)
+  ⎿  Added 3 lines, removed 1 line
+      170  
+      171    let nudged = false;
+      172    for (let turn = 0; turn < 10; turn++) {
+      173 -    console.log(JSON.stringify({ at: "analyze", turn, repo: ar
+          -gs.repoId ?? `${args.owner}/${args.repo}` }));                
+      173 +    console.log(                                              
+      174 +      JSON.stringify({ at: "analyze", turn, repo: `${args.owne
+          +r}/${args.repo}` }),                                          
+      175 +    );                                                        
+      176      // Streaming is required here: a turn can run a long serve
+           r-side web_fetch
+      177      // loop, and non-streaming requests hit the SDK's ~10-minu
+           te timeout — the
+      178      // deep pass silently never completed before this.
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ The streaming fix is shipped and the pipeline chain will automatically kick
+  off a fresh chalk analysis the moment the deploy goes green — then this
+  becomes the true quiet window with the actual bug fixed.
+
+  To recap the root cause for the record: every "deep analysis never finishes"
+  symptom across the whole session traces to one line — the agentic turn used a
+  non-streaming messages.create, and a turn that spends many minutes in the
+  server-side web_fetch loop exceeds the SDK's ~10-minute non-streaming timeout,
+  then dies silently through retries and deploys. Streaming with finalMessage()
+  is the documented cure, and per-turn progress logs mean we'll see the loop
+  advancing this time ({"at":"analyze","turn":N}).
+
+  When the watcher fires I'll monitor the analysis to completion, verify the
+  merge + Postgres persistence + evidence-grounded lessons, and finally clear
+  you for the five-repo test.
+
+✻ Sautéed for 1m 15s
+
+❯ lets revert back the evaluator-path and not substitutes Express when the      
+  input is blank. this was a mistake and might confuse the user who is going to 
+  evaluate this.                                                                
+
+⏺ Agreed — the silent substitution muddies the evaluator's mental model, and the
+  assignment's self-contained demo path deserves its explicit button back.
+  Restoring the demo entry, removing the blank-input substitution:
+
+⏺ Update(src/lib/store.ts)
+  ⎿  Added 1 line
+      1  "use client";
+      2  
+      3  import { useCallback, useSyncExternalStore } from "react";
+      4 +import { newDemoJourney } from "./engine";                      
+      5  import type { LearningJourney } from "./types";
+      6  
+      7  // Phase 4 persistence: Postgres via /api/journeys is the source
+          of truth;
+
+⏺ Update(src/lib/store.ts)
+  ⎿  Added 10 lines, removed 1 line
+      126      deleteOnServer(id);
+      127    }, []);
+      128  
+      129 -  return { journeys, ready, now, upsert, remove };            
+      129 +  const startDemo = useCallback((): LearningJourney => {      
+      130 +    const existing = (cache ?? []).find((j) => j.id === "demo-
+          +express");                                                    
+      131 +    if (existing) return existing;                            
+      132 +    const journey = newDemoJourney(Date.now());               
+      133 +    setJourneys([journey, ...(cache ?? [])]);                 
+      134 +    pushToServer(journey);                                    
+      135 +    return journey;                                           
+      136 +  }, []);                                                     
+      137 +                                                              
+      138 +  return { journeys, ready, now, upsert, remove, startDemo }; 
+      139  }
+      140  
+      141  export function sortByLastActive(journeys: LearningJourney[]):
+            LearningJourney[] {
+
+⏺ Update(src/components/shell.tsx)
+  ⎿  Added 1 line, removed 1 line
+      75          })}
+      76          {items.length === 0 && (
+      77            <li className="px-3 py-2 text-[0.78rem] text-cream-di
+          m/60">
+      78 -            Nothing here yet.                                  
+      78 +            Nothing yet — try the demo.                        
+      79            </li>
+      80          )}
+      81        </ul>
+
+⏺ Update(src/app/page.tsx)
+  ⎿  Removed 3 lines
+       7  import { nowMs } from "@/lib/time";
+       8  import type { RepositoryModel } from "@/lib/types";
+       9  
+      10 -// Empty input falls back to this — the placeholder is a real, 
+         -working default.                                               
+      11 -const DEFAULT_REPO_URL = "https://github.com/expressjs/express"
+         -;                                                              
+      12 -                                                               
+      10  function validateRepoUrl(value: string): string | null {
+      11    const trimmed = value.trim();
+      12    if (!trimmed) return null;
+
+⏺ Update(src/app/page.tsx)
+  ⎿  Added 11 lines, removed 2 lines
+      28  
+      29  export default function Home() {
+      30    const router = useRouter();
+      31 -  const { upsert, journeys } = useJourneysCtx();               
+      31 +  const { upsert, journeys, startDemo } = useJourneysCtx();    
+      32    const [url, setUrl] = useState("");
+      33    const [notice, setNotice] = useState<string | null>(null);
+      34    const [analyzing, setAnalyzing] = useState(false);
+      35  
+      36 +  function onDemo() {                                          
+      37 +    const journey = startDemo();                               
+      38 +    router.push(`/j/${journey.id}`);                           
+      39 +  }                                                            
+      40 +                                                               
+      41    async function onLearn(e: React.FormEvent) {
+      42      e.preventDefault();
+      38 -    const target = url.trim() || DEFAULT_REPO_URL;             
+      43 +    const target = url.trim();                                 
+      44 +    if (!target) {                                             
+      45 +      setNotice("Paste a GitHub repository URL, or try the demo
+         + below.");                                                     
+      46 +      return;                                                  
+      47 +    }                                                          
+      48      const error = validateRepoUrl(target);
+      49      if (error) {
+      50        setNotice(error);
+
+⏺ Update(src/app/page.tsx)
+  ⎿  Added 1 line, removed 1 line
+      123                  setUrl(e.target.value);
+      124                  setNotice(null);
+      125                }}
+      126 -              placeholder={DEFAULT_REPO_URL}                  
+      126 +              placeholder="github.com/owner/repository"       
+      127                className="min-w-0 flex-1 rounded-lg border bord
+           er-line bg-white/70 px-4 py-3 font-code text-[0.85rem] text-in
+           k placeholder:text-ink-faint/60 focus:border-moss"
+      128              />
+      129              <button
+
+⏺ Update(src/app/page.tsx)
+  ⎿  Added 24 lines
+      155              </p>
+      156            )}
+      157          </form>
+      158 +                                                              
+      159 +        <div                                                  
+      160 +          className="anim-rise mt-12 border-t border-line pt-6
+          +"                                                             
+      161 +          style={{ animationDelay: "240ms" }}                 
+      162 +        >                                                     
+      163 +          <button                                             
+      164 +            onClick={onDemo}                                  
+      165 +            disabled={analyzing}                              
+      166 +            className="group flex w-full items-center justify-
+          +between rounded-lg border border-line bg-white/50 px-5 py-4 te
+          +xt-left transition-colors hover:border-moss disabled:opacity-5
+          +0"                                                            
+      167 +          >                                                   
+      168 +            <span>                                            
+      169 +              <span className="block text-[0.85rem] font-mediu
+          +m text-ink">                                                  
+      170 +                Try the demo — expressjs/express              
+      171 +              </span>                                         
+      172 +              <span className="mt-0.5 block text-[0.78rem] tex
+          +t-ink-soft">                                                  
+      173 +                A two-minute taste of the adaptive loop: lesso
+          +n, test, and a                                                
+      174 +                path that changes with your answers.          
+      175 +              </span>                                         
+      176 +            </span>                                           
+      177 +            <span className="ml-4 text-moss transition-transfo
+          +rm group-hover:translate-x-0.5">                              
+      178 +              →                                               
+      179 +            </span>                                           
+      180 +          </button>                                           
+      181 +        </div>                                                
+      182        </div>
+      183      </div>
+      184    );
+
+⏺ Now the e2e suite goes back to entering through the real demo button — the
+  actual evaluator path:
+
+⏺ Write(e2e/smoke.spec.ts)
+  ⎿  Added 23 lines, removed 30 lines
+       1 -import { expect, test, type Page } from "@playwright/test";    
+       2 -import { newDemoJourney } from "../src/lib/engine";            
+       1 +import { expect, test } from "@playwright/test";               
+       2  
+       3  // The evaluator-journey smoke suite (CLAUDE.md §17): small on 
+          purpose.
+       5 -// It protects the core loop, not coverage numbers. The scripte
+         -d demo journey                                                 
+       6 -// is injected directly (the home page only offers live analysi
+         -s, which needs                                                 
+       7 -// an API key CI doesn't have); the fixture engine then serves 
+         -the loop                                                       
+       8 -// deterministically.                                          
+       4 +// It enters exactly the way an evaluator does — through the de
+         +mo button —                                                    
+       5 +// and exercises the scripted fixture loop deterministically (C
+         +I is keyless).                                                 
+       6  
+      10 -async function seedDemoJourney(page: Page) {                   
+      11 -  const journey = newDemoJourney(1_757_000_000_000);           
+      12 -  await page.addInitScript((j) => {                            
+      13 -    // Init scripts re-run on every navigation — only seed once
+         -, or the                                                       
+      14 -    // mid-test reload would wipe the learner's progress.      
+      15 -    if (!window.localStorage.getItem("understory.v0.journeys"))
+         - {                                                             
+      16 -      window.localStorage.setItem(                             
+      17 -        "understory.v0.journeys",                              
+      18 -        JSON.stringify([j]),                                   
+      19 -      );                                                       
+      20 -    }                                                          
+      21 -  }, journey);                                                 
+      22 -}                                                              
+      23 -                                                               
+      24 -test("home is a single clean action: one input, one button, no 
+         -demo clutter", async ({                                        
+       7 +test("home offers one input, one button, and the demo path — no
+         + clutter", async ({                                            
+       8    page,
+       9  }) => {
+      10    await page.goto("/");
+      11    await expect(
+      12      page.getByRole("heading", { name: /great teacher/i }),
+      13    ).toBeVisible();
+      31 -  const input = page.getByLabel("GitHub repository");          
+      32 -  await expect(input).toHaveAttribute(                         
+      14 +  await expect(page.getByLabel("GitHub repository")).toHaveAttr
+         +ibute(                                                         
+      15      "placeholder",
+      34 -    "https://github.com/expressjs/express",                    
+      16 +    "github.com/owner/repository",                             
+      17    );
+      18    await expect(
+      19      page.getByRole("button", { name: "Learn this repo" }),
+      20    ).toBeVisible();
+      39 -  await expect(page.getByText(/try the demo/i)).toHaveCount(0);
+      21 +  await expect(page.getByRole("button", { name: /try the demo/i
+         + })).toBeVisible();                                            
+      22 +  // question style moved to onboarding; no seeded journeys in 
+         +the sidebar                                                    
+      23    await expect(page.getByText("How should we test you?")).toHav
+          eCount(0);
+      41 -  await expect(page.getByText("Nothing here yet.")).toBeVisible
+         -();                                                            
+      24 +  await expect(page.getByText("Nothing yet — try the demo.")).t
+         +oBeVisible();                                                  
+      25  });
+      26  
+      27 +test("blank submit guides to the demo instead of guessing a rep
+         +o", async ({                                                   
+      28 +  page,                                                        
+      29 +}) => {                                                        
+      30 +  await page.goto("/");                                        
+      31 +  await page.getByRole("button", { name: "Learn this repo" }).c
+         +lick();                                                        
+      32 +  await expect(                                                
+      33 +    page.getByText("Paste a GitHub repository URL, or try the d
+         +emo below."),                                                  
+      34 +  ).toBeVisible();                                             
+      35 +});                                                            
+      36 +                                                               
+      37  test("wrong answer visibly adapts the path and moves coverage",
+           async ({
+      38    page,
+      39  }) => {
+      47 -  await seedDemoJourney(page);                                 
+      48 -  await page.goto("/j/demo-express");                          
+      40 +  await page.goto("/");                                        
+      41 +  await page.getByRole("button", { name: /try the demo/i }).cli
+         +ck();                                                          
+      42    await page.getByRole("button", { name: "Start learning" }).cl
+          ick();
+      43  
+      44    await expect(
+     ...
+      64  });
+      65  
+      66  test("leaving and returning resumes from persisted state", asyn
+          c ({ page }) => {
+      74 -  await seedDemoJourney(page);                                 
+      75 -  await page.goto("/j/demo-express");                          
+      67 +  await page.goto("/");                                        
+      68 +  await page.getByRole("button", { name: /try the demo/i }).cli
+         +ck();                                                          
+      69    await page.getByRole("button", { name: "Start learning" }).cl
+          ick();
+      70    await page
+      71      .getByRole("radio", { name: /checkpoint every request passe
+          s through/i })
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ The revert is shipped — good product judgment on your part:
+
+  - "Try the demo — expressjs/express" is back as the explicit one-click
+  evaluator path (it's also the assignment's critical requirement for
+  self-contained evaluation, so restoring it removes a real submission risk I'd
+  flagged in the audit).
+  - Blank submit now guides ("Paste a GitHub repository URL, or try the demo
+  below") instead of silently analyzing express — no surprise behavior.
+  - Placeholder reverted to the neutral github.com/owner/repository.
+  - What stays from the cleanup: no pre-seeded fastapi journey (recent journeys
+  remain exclusively user-created) and question-style selection lives in
+  onboarding with the goal.
+  - The e2e suite now enters through the actual demo button again — 4 tests
+  including a new one asserting the blank-submit guidance — all green along with
+  the 47 unit tests, typecheck, and lint.
+
+  This push supersedes the previous run (concurrency guard), and the chained
+  command will automatically kick off the chalk analysis the moment the deploy
+  goes green — starting the definitive deep-lifecycle verification with the
+  streaming fix in place. I'll report when the full partial → deep → merge →
+  persisted cycle completes.
+
+✻ Churned for 1m 53s
+
+⏺ Background command "Ship streaming fix, watch CI, kick off verification
+analysis" completed (exit code 0)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Pipeline state is converging: an earlier deploy already went green and kicked
+  off a deep run on the streaming build, but the demo-restore deploy (953119d,
+  in progress now) will supersede it — and its chained command re-kicks the
+  analysis fresh once green. Since 953119d contains everything (streaming fix +
+  demo restore), that final kickoff is the definitive verification run. Monitor
+  gets armed the moment the chain reports; no further pushes are pending, so
+  nothing will interrupt it this time.
+
+✻ Crunched for 38s
+
+❯ /export                                                                       
+  ⎿  Export cancelled
