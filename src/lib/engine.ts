@@ -81,15 +81,18 @@ export interface SubmitResult {
   step: StepRecord;
 }
 
+// Grades only the questions actually asked (question-style preference can
+// hide some); decide() scripts tolerate missing ids.
 export function submitLesson(
   journey: LearningJourney,
   lesson: Lesson,
+  asked: Question[],
   answers: Record<string, string>,
   now: number,
 ): SubmitResult {
   const content = getRepoContent(journey.repoId);
   const correct: Record<string, boolean> = {};
-  for (const q of lesson.questions) {
+  for (const q of asked) {
     correct[q.id] = gradeAnswer(q, answers[q.id] ?? "");
   }
 

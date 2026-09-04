@@ -51,6 +51,8 @@ export interface Question {
   correctOptionId?: string;
   // fixture-only heuristic for free-form answers; replaced by real grading in Phase 3
   expectedKeywords?: string[];
+  // always asked regardless of question-style preference (e.g. drives a branch)
+  essential?: boolean;
 }
 
 export interface Assessment {

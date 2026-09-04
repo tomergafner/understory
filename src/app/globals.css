@@ -1,26 +1,119 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --color-paper: #f7f3ea;
+  --color-parchment: #efe8d9;
+  --color-ink: #1e2a20;
+  --color-ink-soft: #46564a;
+  --color-ink-faint: #71806f;
+  --color-pine: #16211b;
+  --color-pine-soft: #21302a;
+  --color-pine-line: #2c3d33;
+  --color-cream: #f2ecdd;
+  --color-cream-dim: #b9c2b0;
+  --color-moss: #3e7c4f;
+  --color-moss-deep: #2f6540;
+  --color-fern: #63ac77;
+  --color-amber: #b7791f;
+  --color-amber-soft: #f3e4c8;
+  --color-rust: #a2492d;
+  --color-line: #e3dac6;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: var(--font-fraunces);
+  --font-ui: var(--font-grotesk);
+  --font-code: var(--font-plex-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-ui);
+  /* faint atmosphere: two barely-there washes of moss and amber */
+  background-image:
+    radial-gradient(1200px 600px at 85% -10%, rgba(62, 124, 79, 0.05), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(183, 121, 31, 0.045), transparent 55%);
+  background-attachment: fixed;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-moss);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: rgba(62, 124, 79, 0.22);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drawline {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.anim-rise {
+  animation: rise 0.55s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+.anim-fadein {
+  animation: fadein 0.5s ease both;
+}
+
+.anim-drawline {
+  transform-origin: left;
+  animation: drawline 0.6s 0.15s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-rise,
+  .anim-fadein,
+  .anim-drawline {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Lesson prose: Fraunces at reading size with a calm measure */
+.prose-lesson {
+  font-family: var(--font-display);
+  font-size: 1.075rem;
+  line-height: 1.72;
+  color: var(--color-ink);
+}
+
+.prose-lesson p + p {
+  margin-top: 1.05em;
+}
+
+.prose-lesson code {
+  font-family: var(--font-code);
+  font-size: 0.86em;
+  background: var(--color-parchment);
+  padding: 0.08em 0.35em;
+  border-radius: 4px;
 }

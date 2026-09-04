@@ -1,16 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { newDemoJourney, seedFastapiJourney } from "./engine";
 import type { LearningJourney } from "./types";
 
-// Phase 1 persistence: localStorage only. Phase 4 replaces this module with
-// Postgres-backed persistence behind the same shape.
+// Phase 1 persistence: localStorage behind a tiny external store, so React
+// subscribes via useSyncExternalStore (server snapshot = empty, no hydration
+// mismatch). Phase 4 replaces this module with Postgres-backed persistence.
 
 const KEY = "understory.v0.journeys";
+const SERVER_SNAPSHOT: LearningJourney[] = [];
 
-function load(): LearningJourney[] {
-  if (typeof window === "undefined") return [];
+let cache: LearningJourney[] | null = null;
+let loadedAt = 0;
+const listeners = new Set<() => void>();
+
+function read(): LearningJourney[] {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return [];
@@ -20,53 +25,70 @@ function load(): LearningJourney[] {
   }
 }
 
-function save(journeys: LearningJourney[]) {
+function write(journeys: LearningJourney[]) {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(journeys));
   } catch {
-    // storage full/blocked: the session still works in memory
+    // storage blocked/full: the session still works in memory
   }
 }
 
-export function useJourneys() {
-  const [journeys, setJourneys] = useState<LearningJourney[]>([]);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let stored = load();
+function ensureCache(): LearningJourney[] {
+  if (cache === null) {
+    loadedAt = Date.now();
+    let stored = read();
     if (!stored.some((j) => j.id === "seed-fastapi")) {
-      stored = [...stored, seedFastapiJourney(Date.now())];
-      save(stored);
+      stored = [...stored, seedFastapiJourney(loadedAt)];
+      write(stored);
     }
-    setJourneys(stored);
-    setReady(true);
-  }, []);
+    cache = stored;
+  }
+  return cache;
+}
+
+function setJourneys(next: LearningJourney[]) {
+  cache = next;
+  write(next);
+  listeners.forEach((l) => l());
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function useJourneys() {
+  const journeys = useSyncExternalStore(subscribe, ensureCache, () => SERVER_SNAPSHOT);
+  const ready = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  );
+  const now = useSyncExternalStore(
+    subscribe,
+    () => loadedAt,
+    () => 0,
+  );
 
   const upsert = useCallback((journey: LearningJourney) => {
-    setJourneys((prev) => {
-      const next = [journey, ...prev.filter((j) => j.id !== journey.id)];
-      save(next);
-      return next;
-    });
+    setJourneys([journey, ...ensureCache().filter((j) => j.id !== journey.id)]);
   }, []);
 
   const remove = useCallback((id: string) => {
-    setJourneys((prev) => {
-      const next = prev.filter((j) => j.id !== id);
-      save(next);
-      return next;
-    });
+    setJourneys(ensureCache().filter((j) => j.id !== id));
   }, []);
 
   const startDemo = useCallback((): LearningJourney => {
-    const existing = load().find((j) => j.id === "demo-express");
+    const existing = ensureCache().find((j) => j.id === "demo-express");
     if (existing) return existing;
     const journey = newDemoJourney(Date.now());
-    upsert(journey);
+    setJourneys([journey, ...ensureCache()]);
     return journey;
-  }, [upsert]);
+  }, []);
 
-  return { journeys, ready, upsert, remove, startDemo };
+  return { journeys, ready, now, upsert, remove, startDemo };
 }
 
 export function sortByLastActive(journeys: LearningJourney[]): LearningJourney[] {

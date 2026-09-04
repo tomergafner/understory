@@ -48,6 +48,7 @@ const lesson1Questions: Question[] = [
   {
     id: "e1-q2",
     kind: "mc",
+    essential: true,
     prompt: "Two middlewares are registered: `app.use(auth)` and then `app.use(logger)`. What determines which one runs first?",
     options: [
       { id: "a", label: "Express analyzes what each function does and orders them automatically" },

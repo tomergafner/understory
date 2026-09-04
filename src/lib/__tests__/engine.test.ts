@@ -17,14 +17,14 @@ const orderingWrong = { "e1-q1": "a", "e1-q2": "a", "e1-q3": "it can modify" };
 
 describe("submitLesson — the demo branch", () => {
   it("advances to routing-layer when everything is right", () => {
-    const { journey, step } = submitLesson(newDemoJourney(NOW), lesson1, allCorrect, NOW);
+    const { journey, step } = submitLesson(newDemoJourney(NOW), lesson1, lesson1.questions, allCorrect, NOW);
     expect(step.nextConceptId).toBe("routing-layer");
     expect(journey.learner.conceptStatus["middleware-pipeline"]).toBe("understood");
     expect(journey.learner.recommendedNext?.action).toBe("advance");
   });
 
   it("remediates to router-stack when ordering is wrong", () => {
-    const { journey, step } = submitLesson(newDemoJourney(NOW), lesson1, orderingWrong, NOW);
+    const { journey, step } = submitLesson(newDemoJourney(NOW), lesson1, lesson1.questions, orderingWrong, NOW);
     expect(step.nextConceptId).toBe("router-stack");
     expect(journey.learner.conceptStatus["middleware-pipeline"]).toBe("misconception");
     expect(journey.learner.recommendedNext?.action).toBe("remediate");
@@ -32,7 +32,7 @@ describe("submitLesson — the demo branch", () => {
   });
 
   it("records the step with per-question correctness", () => {
-    const { journey } = submitLesson(newDemoJourney(NOW), lesson1, orderingWrong, NOW);
+    const { journey } = submitLesson(newDemoJourney(NOW), lesson1, lesson1.questions, orderingWrong, NOW);
     expect(journey.steps).toHaveLength(1);
     expect(journey.steps[0].correct["e1-q2"]).toBe(false);
     expect(journey.steps[0].correct["e1-q1"]).toBe(true);
@@ -41,7 +41,7 @@ describe("submitLesson — the demo branch", () => {
 
 describe("planReview", () => {
   it("targets the last taught concept for last-lesson review", () => {
-    const { journey } = submitLesson(newDemoJourney(NOW), lesson1, allCorrect, NOW);
+    const { journey } = submitLesson(newDemoJourney(NOW), lesson1, lesson1.questions, allCorrect, NOW);
     const plan = planReview(journey, "last_lesson");
     expect(plan?.conceptIds).toEqual(["middleware-pipeline"]);
     expect(plan!.questions.length).toBeGreaterThan(0);

@@ -21,7 +21,7 @@ interface RepoContent {
   decide: Record<string, DecideFn>;
 }
 
-function fastapiDecide(conceptId: string): DecideFn {
+function fastapiDecide(): DecideFn {
   return (correct) => {
     const allRight = Object.values(correct).every(Boolean);
     return {
@@ -61,7 +61,7 @@ const registry: Record<string, RepoContent> = {
     lessons: fastapiLessons,
     reviewBank: fastapiReviewBank,
     decide: {
-      "dependency-injection": fastapiDecide("dependency-injection"),
+      "dependency-injection": fastapiDecide(),
     },
   },
 };
