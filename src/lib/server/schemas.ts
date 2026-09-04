@@ -69,7 +69,13 @@ export const ReviewPlanSchema = z.object({
     .string()
     .describe("one visible sentence on why these concepts were chosen"),
   questions: z
-    .array(GeneratedQuestionSchema)
+    .array(
+      GeneratedQuestionSchema.extend({
+        conceptId: z
+          .string()
+          .describe("which of the chosen concepts this question tests"),
+      }),
+    )
     .min(1)
     .max(3)
     .describe("multiple choice only; fresh questions, not lesson repeats"),

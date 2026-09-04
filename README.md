@@ -13,11 +13,16 @@ Built for the Anthropic SWE take-home (Theme 1: Exploration & Understanding).
 
 ## Current state
 
-Phase 1 — UX prototype with fixtures. The full learning loop runs on a bundled
-demo repository (expressjs/express) with no API or database: lesson → quiz →
-graded feedback → **visible adaptation** (a wrong answer about middleware
-ordering reroutes the curriculum through a remediation lesson) → durable
-resume and active review via localStorage.
+The full product loop is live: paste any public GitHub repository and a
+**two-stage analysis** starts learning in ~20 seconds — a README-based starter
+curriculum first, while Claude reads the code agentically in the background
+and upgrades the curriculum in place. Lessons are generated per concept,
+grounded in real code evidence, graded (multiple-choice deterministically,
+free-form semantically), and every next step is decided from the learner's
+demonstrated understanding. Journeys persist in Postgres behind an anonymous
+cookie identity, resumable across visits with active review of weak concepts.
+A bundled demo (expressjs/express) runs the same loop with a scripted fallback
+so it works even without any external service.
 
 ## Run it
 

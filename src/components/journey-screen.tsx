@@ -101,6 +101,7 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
   useEffect(() => {
     journeyRef.current = journey;
   }, [journey]);
+  const [mergeNote, setMergeNote] = useState<string | null>(null);
   const partialUrl = journey?.model?.partial ? journey.model.repoUrl : null;
   useEffect(() => {
     if (!partialUrl) return;
@@ -109,10 +110,29 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
         const data = await fetchAnalysis(partialUrl);
         const current = journeyRef.current;
         if (data.status === "done" && current?.model?.partial) {
-          upsert({ ...current, model: mergeDeepModel(current, data.model) });
+          const merged = mergeDeepModel(current, data.model);
+          const added = merged.concepts.length - current.model.concepts.length;
+          upsert({ ...current, model: merged });
+          setMergeNote(
+            added > 0
+              ? `deep analysis complete — ${added} concept${added === 1 ? "" : "s"} joined your path, coverage recalculated`
+              : "deep analysis complete — curriculum refined, coverage recalculated",
+          );
           clearInterval(interval);
         } else if (data.status === "partial" && data.deepFailed) {
-          clearInterval(interval); // keep learning on the starter curriculum
+          // Persist the failure so reloads don't relaunch the deep job or
+          // show a perpetual "running" indicator.
+          if (current?.model?.partial) {
+            upsert({
+              ...current,
+              model: {
+                ...current.model,
+                partial: undefined,
+                deepFailed: true,
+              },
+            });
+          }
+          clearInterval(interval);
         }
       } catch {
         // transient; keep polling
@@ -120,6 +140,12 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
     }, 10_000);
     return () => clearInterval(interval);
   }, [partialUrl, upsert]);
+
+  useEffect(() => {
+    if (!mergeNote) return;
+    const t = setTimeout(() => setMergeNote(null), 15_000);
+    return () => clearTimeout(t);
+  }, [mergeNote]);
 
   if (!ready || view.kind === "boot") {
     return <div className="min-h-screen" />;
@@ -166,9 +192,13 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
             <ProgressLine
               percent={coverage.percent}
               goalLabel={journey.goalLabel}
-              grewNote={grewNote}
+              grewNote={mergeNote ?? grewNote}
               pendingNote={
-                journey.model?.partial ? "deep analysis running…" : null
+                journey.model?.partial
+                  ? "deep analysis running…"
+                  : journey.model?.deepFailed
+                    ? "learning from the starter curriculum"
+                    : null
               }
             />
           </div>
@@ -591,6 +621,7 @@ function LessonFlow({
               index={i}
               value={answers[q.id] ?? ""}
               onChange={(v) => setAnswers((a) => ({ ...a, [q.id]: v }))}
+              locked={grading}
             />
           ))}
         </div>

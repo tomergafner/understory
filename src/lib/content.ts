@@ -124,20 +124,34 @@ export function modelForJourney(journey: {
 // starter concepts the learner already touched are kept so history stays
 // coherent even if the deep pass dropped them.
 export function mergeDeepModel(
-  journey: { model?: RepositoryModel; learner: { conceptStatus: Record<string, string> } },
+  journey: {
+    model?: RepositoryModel;
+    learner: {
+      conceptStatus: Record<string, string>;
+      recommendedNext: { conceptId: string | null } | null;
+    };
+  },
   deep: RepositoryModel,
 ): RepositoryModel {
   const starter = journey.model;
   if (!starter) return { ...deep, partial: undefined };
   const deepIds = new Set(deep.concepts.map((c) => c.id));
-  const touchedMissing = starter.concepts.filter(
-    (c) =>
-      (journey.learner.conceptStatus[c.id] ?? "untaught") !== "untaught" &&
-      !deepIds.has(c.id),
+  // Keep starter concepts the learner touched AND the currently recommended
+  // one — the Continue button must never point at a vanished concept.
+  const keepIds = new Set(
+    Object.entries(journey.learner.conceptStatus)
+      .filter(([, status]) => status !== "untaught")
+      .map(([id]) => id),
+  );
+  if (journey.learner.recommendedNext?.conceptId) {
+    keepIds.add(journey.learner.recommendedNext.conceptId);
+  }
+  const kept = starter.concepts.filter(
+    (c) => keepIds.has(c.id) && !deepIds.has(c.id),
   );
   return {
     ...deep,
-    concepts: [...deep.concepts, ...touchedMissing],
+    concepts: [...deep.concepts, ...kept],
     partial: undefined,
   };
 }

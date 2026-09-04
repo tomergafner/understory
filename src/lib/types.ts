@@ -39,6 +39,8 @@ export interface RepositoryModel {
   concepts: Concept[];
   // Stage-1 starter analysis (README-only); a deep pass is running behind it.
   partial?: boolean;
+  // The deep pass failed; learning continues on the starter curriculum.
+  deepFailed?: boolean;
 }
 
 export interface McOption {

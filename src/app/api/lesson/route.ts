@@ -35,6 +35,19 @@ export async function POST(req: Request) {
     }
   }
 
+  // A merged/refined curriculum may no longer contain a stale concept id —
+  // never let "undefined" reach a prompt.
+  if (!content.model.concepts.some((c) => c.id === body.conceptId)) {
+    return Response.json(
+      {
+        error: "unknown_concept",
+        message:
+          "That concept is no longer part of this curriculum — head back and continue from your current path.",
+      },
+      { status: 404 },
+    );
+  }
+
   const fixture = () => {
     if (!content.isFixture) return null;
     const lesson = getLesson(body.repoId, body.conceptId);
@@ -89,13 +102,21 @@ export async function POST(req: Request) {
       }));
     if (questions.length === 0) throw new Error("no_valid_questions");
 
+    // Enforce the learner's style preference deterministically: "multiple
+    // choice only" must never surface a free-form question.
+    let finalQuestions = questions;
+    if (body.questionStyle === "mc") {
+      const mcOnly = questions.filter((q) => q.kind === "mc");
+      if (mcOnly.length > 0) finalQuestions = mcOnly;
+    }
+
     const lesson: Lesson = {
       conceptId: body.conceptId,
       title: gen.title,
       kicker: gen.kicker,
       paragraphs: gen.paragraphs,
       excerpt: gen.useExcerpt ? content.evidence[body.conceptId] : undefined,
-      questions,
+      questions: finalQuestions,
     };
     return Response.json({ source: "model", lesson });
   } catch (err) {

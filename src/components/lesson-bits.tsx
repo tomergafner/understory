@@ -101,14 +101,16 @@ export function QuizQuestion({
   value,
   onChange,
   result,
+  locked = false,
 }: {
   question: Question;
   index: number;
   value: string;
   onChange: (v: string) => void;
   result?: boolean; // defined once graded
+  locked?: boolean; // grading in flight — answers must not silently change
 }) {
-  const graded = result !== undefined;
+  const graded = result !== undefined || locked;
   return (
     <fieldset className="rounded-lg border border-line bg-white/50 p-5">
       <legend className="sr-only">Question {index + 1}</legend>
@@ -119,7 +121,7 @@ export function QuizQuestion({
         <p className="text-[0.92rem] font-medium leading-relaxed text-ink">
           {question.prompt}
         </p>
-        {graded && (
+        {result !== undefined && (
           <span
             className={`ml-auto shrink-0 font-code text-[0.7rem] font-medium ${
               result ? "text-moss-deep" : "text-rust"
@@ -134,8 +136,9 @@ export function QuizQuestion({
         <div className="mt-3 flex flex-col gap-1.5" role="radiogroup">
           {question.options.map((opt) => {
             const selected = value === opt.id;
-            const isCorrect = graded && opt.id === question.correctOptionId;
-            const isWrongPick = graded && selected && !isCorrect;
+            const isCorrect =
+              result !== undefined && opt.id === question.correctOptionId;
+            const isWrongPick = result !== undefined && selected && !isCorrect;
             return (
               <label
                 key={opt.id}

@@ -77,7 +77,7 @@ export async function POST(req: Request) {
         : gen.conceptIds.filter((id) => taught.has(id));
     if (conceptIds.length === 0) throw new Error("no_valid_concepts");
 
-    const questions: Question[] = gen.questions
+    const valid = gen.questions
       .filter(
         (q) =>
           q.kind === "mc" &&
@@ -85,20 +85,30 @@ export async function POST(req: Request) {
           q.options.length >= 2 &&
           q.options.some((o) => o.id === q.correctOptionId),
       )
-      .slice(0, 3)
-      .map((q) => ({
-        id: q.id,
-        kind: "mc" as const,
-        prompt: q.prompt,
-        options: q.options ?? undefined,
-        correctOptionId: q.correctOptionId ?? undefined,
-      }));
-    if (questions.length === 0) throw new Error("no_valid_questions");
+      .slice(0, 3);
+    if (valid.length === 0) throw new Error("no_valid_questions");
+
+    const questions: Question[] = valid.map((q) => ({
+      id: q.id,
+      kind: "mc" as const,
+      prompt: q.prompt,
+      options: q.options ?? undefined,
+      correctOptionId: q.correctOptionId ?? undefined,
+    }));
+    // Attribute each question to a validated concept so mastery updates land
+    // on the right one (index-guessing misattributed them before).
+    const questionConceptIds = Object.fromEntries(
+      valid.map((q) => [
+        q.id,
+        conceptIds.includes(q.conceptId) ? q.conceptId : conceptIds[0],
+      ]),
+    );
 
     const plan: ReviewPlan = {
       kind: body.kind,
       conceptIds,
       questions,
+      questionConceptIds,
       reason: gen.reason,
     };
     return Response.json({ source: "model", plan });

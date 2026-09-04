@@ -263,6 +263,8 @@ export interface ReviewPlan {
   kind: "last_lesson" | "broad";
   conceptIds: string[];
   questions: Question[];
+  // questionId -> conceptId; mastery updates must hit the right concept
+  questionConceptIds?: Record<string, string>;
   reason: string;
 }
 
@@ -320,6 +322,9 @@ export function planReviewFrom(
     kind,
     conceptIds: picked.map((p) => p.conceptId),
     questions: picked.map((p) => p.question),
+    questionConceptIds: Object.fromEntries(
+      picked.map((p) => [p.question.id, p.conceptId]),
+    ),
     reason:
       "Sampled from what you've covered, weighted toward concepts that looked weak or haven't been tested recently.",
   };
@@ -352,6 +357,8 @@ export function submitReview(
 
   // Map each question back to its concept to update mastery per concept.
   const conceptOfQuestion = (q: Question): string => {
+    const mapped = plan.questionConceptIds?.[q.id];
+    if (mapped && plan.conceptIds.includes(mapped)) return mapped;
     if (plan.kind === "last_lesson") return plan.conceptIds[0];
     const idx = plan.questions.findIndex((pq) => pq.id === q.id);
     return plan.conceptIds[Math.min(idx, plan.conceptIds.length - 1)];

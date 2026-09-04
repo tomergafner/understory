@@ -63,7 +63,15 @@ export async function POST(req: Request) {
         );
   };
 
+  // Fixture fallback exists only for fixture repos: fake-grading a live
+  // repo's free-form answers would be dishonest — fail visibly instead.
   if (!hasApiKey()) {
+    if (!content.isFixture) {
+      return Response.json(
+        { error: "no_model", message: "Grading needs the model configured." },
+        { status: 503 },
+      );
+    }
     return Response.json({ source: "fixture", outcome: fixtureOutcome() });
   }
 
@@ -127,7 +135,17 @@ export async function POST(req: Request) {
     };
     return Response.json({ source: "model", outcome });
   } catch (err) {
-    console.error("assess: model path failed, using fixture fallback", err);
+    console.error("assess: model path failed", err);
+    if (!content.isFixture) {
+      return Response.json(
+        {
+          error: "model_error",
+          message:
+            "Grading didn't complete — your answers are kept, try again.",
+        },
+        { status: 502 },
+      );
+    }
     return Response.json({ source: "fixture", outcome: fixtureOutcome() });
   }
 }

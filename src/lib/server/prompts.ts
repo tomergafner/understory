@@ -163,6 +163,6 @@ export function buildReviewPrompt(args: {
   return [
     curriculumBlock(args.model, args.goal, args.learner),
     target,
-    `Rules: multiple choice only (reviews are quick checks). Fresh questions — test understanding from a new angle, don't repeat lesson phrasing. The "reason" field is shown to the learner and should say why these concepts were chosen.`,
+    `Rules: multiple choice only (reviews are quick checks). Fresh questions — test understanding from a new angle, don't repeat lesson phrasing. Every question carries the conceptId (from your chosen conceptIds) that it tests. The "reason" field is shown to the learner and should say why these concepts were chosen.`,
   ].join("\n\n");
 }
