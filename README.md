@@ -8,6 +8,8 @@ understand.
 
 Built for the Anthropic SWE take-home (Theme 1: Exploration & Understanding).
 
+**Live**: https://understory-production-e6f9.up.railway.app — click "Try the demo".
+
 ## Current state
 
 Phase 1 — UX prototype with fixtures. The full learning loop runs on a bundled
@@ -27,10 +29,18 @@ Checks:
 
 ```bash
 npm run typecheck
-npm run lint       # eslint src
-npm test           # vitest: coverage math, grading, engine transitions
+npm run lint            # eslint src
+npm test                # vitest: coverage math, grading, engine transitions
 npm run build
+npx playwright test     # 3-test evaluator-journey smoke (builds + serves itself)
 ```
+
+## CI/CD
+
+GitHub Actions (`.github/workflows/ci.yml`) runs typecheck, lint, unit tests,
+build, and the Playwright smoke on every push/PR. Pushes to `main` then deploy
+to Railway (`railway up --ci`) and verify the production health endpoint.
+Requires the `RAILWAY_TOKEN` secret and `HEALTH_URL` variable on the repo.
 
 ## Environment variables
 

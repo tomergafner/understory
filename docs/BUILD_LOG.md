@@ -36,6 +36,29 @@ scoring risk, not just a schedule risk.
 **What remains:** Deployment + CI (Phase 2), real Claude loop (Phase 3),
 Postgres (Phase 4), live ingestion (Phase 5).
 
+## Phase 2 — Walking-skeleton deployment + CI (2026-09-03)
+
+**What works:**
+- Live at https://understory-production-e6f9.up.railway.app (Railway project
+  "understory", production env); `/api/health` returns ok.
+- GitHub repo github.com/tomergafner/understory (private until submission).
+- CI pipeline: checks (typecheck/lint/vitest/build) + e2e (Playwright smoke of
+  the evaluator journey) gate a deploy job that runs `railway up --ci` on main
+  and curls the health endpoint afterward.
+- The 3-test smoke suite passes locally AND against production.
+- Always-submittable invariant is now in force.
+
+**What remains:** RAILWAY_TOKEN repo secret (user mints in Railway dashboard —
+project tokens aren't mintable via CLI/API auth), then first green CI run.
+Then Phase 3 (real adaptive loop).
+
+**Notable failure/learning:**
+- Railway project tokens can't be created with the CLI session token
+  (projectTokenCreate → Not Authorized); dashboard-only. Everything else
+  (rename, domain) worked via GraphQL with the CLI's accessToken.
+- The plugin's railway-api.sh reads ~/.railway/config.json `.user.token`;
+  current CLI stores `.user.accessToken`.
+
 **Notable failure/learning:**
 - create-next-app's generated CLAUDE.md pointer clobbered the master
   instructions during scaffold move — caught immediately because Phase 0 was
