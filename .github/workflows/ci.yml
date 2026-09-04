@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+# Serialize per ref and cancel superseded runs — two queued main pushes must
+# never deploy out of order (an older build would overwrite a newer one).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
     runs-on: ubuntu-latest
