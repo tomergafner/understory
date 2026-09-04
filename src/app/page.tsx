@@ -7,9 +7,6 @@ import { newLiveJourney } from "@/lib/engine";
 import { nowMs } from "@/lib/time";
 import type { RepositoryModel } from "@/lib/types";
 
-// Empty input falls back to this — the placeholder is a real, working default.
-const DEFAULT_REPO_URL = "https://github.com/expressjs/express";
-
 function validateRepoUrl(value: string): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -31,14 +28,23 @@ function validateRepoUrl(value: string): string | null {
 
 export default function Home() {
   const router = useRouter();
-  const { upsert, journeys } = useJourneysCtx();
+  const { upsert, journeys, startDemo } = useJourneysCtx();
   const [url, setUrl] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
 
+  function onDemo() {
+    const journey = startDemo();
+    router.push(`/j/${journey.id}`);
+  }
+
   async function onLearn(e: React.FormEvent) {
     e.preventDefault();
-    const target = url.trim() || DEFAULT_REPO_URL;
+    const target = url.trim();
+    if (!target) {
+      setNotice("Paste a GitHub repository URL, or try the demo below.");
+      return;
+    }
     const error = validateRepoUrl(target);
     if (error) {
       setNotice(error);
@@ -117,7 +123,7 @@ export default function Home() {
                 setUrl(e.target.value);
                 setNotice(null);
               }}
-              placeholder={DEFAULT_REPO_URL}
+              placeholder="github.com/owner/repository"
               className="min-w-0 flex-1 rounded-lg border border-line bg-white/70 px-4 py-3 font-code text-[0.85rem] text-ink placeholder:text-ink-faint/60 focus:border-moss"
             />
             <button
@@ -149,6 +155,30 @@ export default function Home() {
             </p>
           )}
         </form>
+
+        <div
+          className="anim-rise mt-12 border-t border-line pt-6"
+          style={{ animationDelay: "240ms" }}
+        >
+          <button
+            onClick={onDemo}
+            disabled={analyzing}
+            className="group flex w-full items-center justify-between rounded-lg border border-line bg-white/50 px-5 py-4 text-left transition-colors hover:border-moss disabled:opacity-50"
+          >
+            <span>
+              <span className="block text-[0.85rem] font-medium text-ink">
+                Try the demo — expressjs/express
+              </span>
+              <span className="mt-0.5 block text-[0.78rem] text-ink-soft">
+                A two-minute taste of the adaptive loop: lesson, test, and a
+                path that changes with your answers.
+              </span>
+            </span>
+            <span className="ml-4 text-moss transition-transform group-hover:translate-x-0.5">
+              →
+            </span>
+          </button>
+        </div>
       </div>
     </div>
   );

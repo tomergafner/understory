@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
+import { newDemoJourney } from "./engine";
 import type { LearningJourney } from "./types";
 
 // Phase 4 persistence: Postgres via /api/journeys is the source of truth;
@@ -125,7 +126,16 @@ export function useJourneys() {
     deleteOnServer(id);
   }, []);
 
-  return { journeys, ready, now, upsert, remove };
+  const startDemo = useCallback((): LearningJourney => {
+    const existing = (cache ?? []).find((j) => j.id === "demo-express");
+    if (existing) return existing;
+    const journey = newDemoJourney(Date.now());
+    setJourneys([journey, ...(cache ?? [])]);
+    pushToServer(journey);
+    return journey;
+  }, []);
+
+  return { journeys, ready, now, upsert, remove, startDemo };
 }
 
 export function sortByLastActive(journeys: LearningJourney[]): LearningJourney[] {

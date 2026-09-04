@@ -1,51 +1,44 @@
-import { expect, test, type Page } from "@playwright/test";
-import { newDemoJourney } from "../src/lib/engine";
+import { expect, test } from "@playwright/test";
 
 // The evaluator-journey smoke suite (CLAUDE.md §17): small on purpose.
-// It protects the core loop, not coverage numbers. The scripted demo journey
-// is injected directly (the home page only offers live analysis, which needs
-// an API key CI doesn't have); the fixture engine then serves the loop
-// deterministically.
+// It enters exactly the way an evaluator does — through the demo button —
+// and exercises the scripted fixture loop deterministically (CI is keyless).
 
-async function seedDemoJourney(page: Page) {
-  const journey = newDemoJourney(1_757_000_000_000);
-  await page.addInitScript((j) => {
-    // Init scripts re-run on every navigation — only seed once, or the
-    // mid-test reload would wipe the learner's progress.
-    if (!window.localStorage.getItem("understory.v0.journeys")) {
-      window.localStorage.setItem(
-        "understory.v0.journeys",
-        JSON.stringify([j]),
-      );
-    }
-  }, journey);
-}
-
-test("home is a single clean action: one input, one button, no demo clutter", async ({
+test("home offers one input, one button, and the demo path — no clutter", async ({
   page,
 }) => {
   await page.goto("/");
   await expect(
     page.getByRole("heading", { name: /great teacher/i }),
   ).toBeVisible();
-  const input = page.getByLabel("GitHub repository");
-  await expect(input).toHaveAttribute(
+  await expect(page.getByLabel("GitHub repository")).toHaveAttribute(
     "placeholder",
-    "https://github.com/expressjs/express",
+    "github.com/owner/repository",
   );
   await expect(
     page.getByRole("button", { name: "Learn this repo" }),
   ).toBeVisible();
-  await expect(page.getByText(/try the demo/i)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /try the demo/i })).toBeVisible();
+  // question style moved to onboarding; no seeded journeys in the sidebar
   await expect(page.getByText("How should we test you?")).toHaveCount(0);
-  await expect(page.getByText("Nothing here yet.")).toBeVisible();
+  await expect(page.getByText("Nothing yet — try the demo.")).toBeVisible();
+});
+
+test("blank submit guides to the demo instead of guessing a repo", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Learn this repo" }).click();
+  await expect(
+    page.getByText("Paste a GitHub repository URL, or try the demo below."),
+  ).toBeVisible();
 });
 
 test("wrong answer visibly adapts the path and moves coverage", async ({
   page,
 }) => {
-  await seedDemoJourney(page);
-  await page.goto("/j/demo-express");
+  await page.goto("/");
+  await page.getByRole("button", { name: /try the demo/i }).click();
   await page.getByRole("button", { name: "Start learning" }).click();
 
   await expect(
@@ -71,8 +64,8 @@ test("wrong answer visibly adapts the path and moves coverage", async ({
 });
 
 test("leaving and returning resumes from persisted state", async ({ page }) => {
-  await seedDemoJourney(page);
-  await page.goto("/j/demo-express");
+  await page.goto("/");
+  await page.getByRole("button", { name: /try the demo/i }).click();
   await page.getByRole("button", { name: "Start learning" }).click();
   await page
     .getByRole("radio", { name: /checkpoint every request passes through/i })
