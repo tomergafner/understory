@@ -64,12 +64,10 @@ KEY DESIGN DECISIONS AND TRADEOFFS
 
 HOW I WOULD EXTEND THIS WITH MORE TIME
 
-- Immediate feature is to add Authentication and option to learn more about the learner 
-  e.g. their GitHub username and LinkedIn to tailor even better the learning and analogies to their experience
-- Ability to collect subjective feedback mechanism from the user on the generated tutorials and questions.
-- Integration and ability to spin an environment with the repo and include coding questions that will force the user 
-  to read relevant parts of the code and potentially make changes to understand better specific areas. 
-- Much more text coverage and evaluation for multiple different repositories. 
+- Measure whether adaptation actually improves learning.
+I would build an evaluation framework to measure how personalized each learning path is and whether adaptive tutorials help users reach a target level of understanding faster than a fixed tutorial. Useful metrics could include time-to-mastery, performance on unseen questions, retention over time, number of remediation steps, and ultimately performance on contribution-oriented tasks.
+- Build a richer learner model.
+Authentication would allow learning state to persist across devices and repositories. With user permission, signals such as GitHub history—and potentially professional background—could help the system understand technologies and concepts the learner already knows. This could improve curriculum selection and allow explanations and analogies to connect unfamiliar concepts to the learner's existing experience.
 
 APPROXIMATELY HOW LONG I SPENT
 
