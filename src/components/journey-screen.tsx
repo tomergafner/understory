@@ -315,8 +315,6 @@ function OnboardView({
 }) {
   const [style, setStyle] = useState<QuestionStyle>(journey.questionStyle);
   const [goal, setGoal] = useState<Goal>(journey.goal);
-  // The scripted demo only has an architecture path; live repos unlock all goals.
-  const locked = !journey.model;
 
   return (
     <div className="anim-rise mx-auto max-w-lg pt-10">
@@ -334,23 +332,19 @@ function OnboardView({
         <div className="mt-3 flex flex-col gap-2">
           {GOALS.map((g) => {
             const selected = g.id === goal;
-            const disabled = locked && g.id !== journey.goal;
             return (
               <label
                 key={g.id}
-                className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-[0.88rem] ${
+                className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 text-[0.88rem] ${
                   selected
                     ? "border-moss bg-moss/10 font-medium text-moss-deep"
-                    : disabled
-                      ? "cursor-not-allowed border-line text-ink-faint/60"
-                      : "cursor-pointer border-line text-ink-soft hover:border-ink-faint"
+                    : "border-line text-ink-soft hover:border-ink-faint"
                 }`}
               >
                 <input
                   type="radio"
                   name="goal"
                   checked={selected}
-                  disabled={disabled}
                   onChange={() => setGoal(g.id)}
                   className="accent-[#3e7c4f]"
                 />
@@ -359,12 +353,10 @@ function OnboardView({
             );
           })}
         </div>
-        {locked && (
-          <p className="mt-2 text-[0.72rem] text-ink-faint">
-            The demo teaches the architecture path; all goals open up when you
-            analyze a repository live.
-          </p>
-        )}
+        <p className="mt-2 text-[0.72rem] text-ink-faint">
+          Your goal decides which concepts are in scope and how deep the path
+          goes — it shapes every lesson.
+        </p>
       </fieldset>
 
       <fieldset className="mt-6">
