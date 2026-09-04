@@ -170,7 +170,13 @@ export async function analyzeAgentically(
 
   let nudged = false;
   for (let turn = 0; turn < 10; turn++) {
-    const response = await getClient().messages.create({
+    console.log(
+      JSON.stringify({ at: "analyze", turn, repo: `${args.owner}/${args.repo}` }),
+    );
+    // Streaming is required here: a turn can run a long server-side web_fetch
+    // loop, and non-streaming requests hit the SDK's ~10-minute timeout — the
+    // deep pass silently never completed before this.
+    const stream = getClient().messages.stream({
       model: getModel(),
       max_tokens: 16000,
       system: [
@@ -184,6 +190,7 @@ export async function analyzeAgentically(
       tools,
       output_config: { effort: getEffort() },
     });
+    const response = await stream.finalMessage();
     logUsage("analyze", startedAt, response.usage);
 
     if (response.stop_reason === "refusal") throw new Error("model_refusal");
