@@ -15,6 +15,13 @@
       "when": 1788492331789,
       "tag": "0001_live_analysis",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788498323458,
+      "tag": "0002_drop_seed_journeys",
+      "breakpoints": true
     }
   ]
 }

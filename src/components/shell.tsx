@@ -75,7 +75,7 @@ function SidebarJourneys() {
         })}
         {items.length === 0 && (
           <li className="px-3 py-2 text-[0.78rem] text-cream-dim/60">
-            Nothing yet — try the demo.
+            Nothing here yet.
           </li>
         )}
       </ul>

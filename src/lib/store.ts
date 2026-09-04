@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { newDemoJourney, seedFastapiJourney } from "./engine";
 import type { LearningJourney } from "./types";
 
 // Phase 4 persistence: Postgres via /api/journeys is the source of truth;
@@ -46,23 +45,21 @@ async function loadOnce() {
   loadStarted = true;
   loadedAt = Date.now();
 
+  // Journeys are only ever user-created now; drop legacy seeded rows.
+  const dropSeeds = (journeys: LearningJourney[]) =>
+    journeys.filter((j) => j.id !== "seed-fastapi");
+
   try {
     const res = await fetch("/api/journeys");
     if (!res.ok) throw new Error(`journeys ${res.status}`);
     const data = (await res.json()) as { journeys: LearningJourney[] };
     mode = "server";
-    cache = data.journeys;
+    cache = dropSeeds(data.journeys);
     writeLocal(cache);
   } catch {
-    // Server or DB unavailable: fall back to the local cache, seeding the
-    // fastapi journey exactly as earlier phases did.
+    // Server or DB unavailable: fall back to the local cache.
     mode = "local";
-    let stored = readLocal();
-    if (!stored.some((j) => j.id === "seed-fastapi")) {
-      stored = [...stored, seedFastapiJourney(loadedAt)];
-      writeLocal(stored);
-    }
-    cache = stored;
+    cache = dropSeeds(readLocal());
   }
   emit();
 }
@@ -128,16 +125,7 @@ export function useJourneys() {
     deleteOnServer(id);
   }, []);
 
-  const startDemo = useCallback((): LearningJourney => {
-    const existing = (cache ?? []).find((j) => j.id === "demo-express");
-    if (existing) return existing;
-    const journey = newDemoJourney(Date.now());
-    setJourneys([journey, ...(cache ?? [])]);
-    pushToServer(journey);
-    return journey;
-  }, []);
-
-  return { journeys, ready, now, upsert, remove, startDemo };
+  return { journeys, ready, now, upsert, remove };
 }
 
 export function sortByLastActive(journeys: LearningJourney[]): LearningJourney[] {

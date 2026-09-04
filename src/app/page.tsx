@@ -5,13 +5,10 @@ import { useState } from "react";
 import { useJourneysCtx } from "@/components/journeys-context";
 import { newLiveJourney } from "@/lib/engine";
 import { nowMs } from "@/lib/time";
-import type { QuestionStyle, RepositoryModel } from "@/lib/types";
+import type { RepositoryModel } from "@/lib/types";
 
-const STYLE_OPTIONS = [
-  { id: "mc", label: "Multiple choice" },
-  { id: "free", label: "Open questions" },
-  { id: "mixed", label: "Mixed" },
-] as const;
+// Empty input falls back to this — the placeholder is a real, working default.
+const DEFAULT_REPO_URL = "https://github.com/expressjs/express";
 
 function validateRepoUrl(value: string): string | null {
   const trimmed = value.trim();
@@ -34,19 +31,15 @@ function validateRepoUrl(value: string): string | null {
 
 export default function Home() {
   const router = useRouter();
-  const { startDemo, upsert, journeys } = useJourneysCtx();
+  const { upsert, journeys } = useJourneysCtx();
   const [url, setUrl] = useState("");
-  const [style, setStyle] = useState<string>("mixed");
   const [notice, setNotice] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
 
   async function onLearn(e: React.FormEvent) {
     e.preventDefault();
-    if (!url.trim()) {
-      setNotice("Paste a GitHub repository URL, or try the demo below.");
-      return;
-    }
-    const error = validateRepoUrl(url);
+    const target = url.trim() || DEFAULT_REPO_URL;
+    const error = validateRepoUrl(target);
     if (error) {
       setNotice(error);
       return;
@@ -60,7 +53,7 @@ export default function Home() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url: target }),
       });
       const data = (await res.json()) as {
         status?: string;
@@ -73,7 +66,7 @@ export default function Home() {
         );
         return;
       }
-      const fresh = newLiveJourney(data.model, style as QuestionStyle, nowMs());
+      const fresh = newLiveJourney(data.model, "mixed", nowMs());
       // Returning to an already-studied repo resumes it instead of restarting.
       const existing = journeys.find((j) => j.repoId === fresh.repoId);
       const journey = existing ?? fresh;
@@ -84,11 +77,6 @@ export default function Home() {
     } finally {
       setAnalyzing(false);
     }
-  }
-
-  function onDemo() {
-    const journey = startDemo();
-    router.push(`/j/${journey.id}`);
   }
 
   return (
@@ -129,7 +117,7 @@ export default function Home() {
                 setUrl(e.target.value);
                 setNotice(null);
               }}
-              placeholder="github.com/owner/repository"
+              placeholder={DEFAULT_REPO_URL}
               className="min-w-0 flex-1 rounded-lg border border-line bg-white/70 px-4 py-3 font-code text-[0.85rem] text-ink placeholder:text-ink-faint/60 focus:border-moss"
             />
             <button
@@ -152,34 +140,6 @@ export default function Home() {
             </p>
           )}
 
-          <fieldset className="mt-5">
-            <legend className="text-[0.72rem] font-medium uppercase tracking-[0.13em] text-ink-faint">
-              How should we test you?
-            </legend>
-            <div className="mt-2 flex gap-2" role="radiogroup">
-              {STYLE_OPTIONS.map((opt) => (
-                <label
-                  key={opt.id}
-                  className={`cursor-pointer rounded-full border px-4 py-1.5 text-[0.8rem] transition-colors ${
-                    style === opt.id
-                      ? "border-moss bg-moss/10 font-medium text-moss-deep"
-                      : "border-line text-ink-soft hover:border-ink-faint"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="style"
-                    value={opt.id}
-                    checked={style === opt.id}
-                    onChange={() => setStyle(opt.id)}
-                    className="sr-only"
-                  />
-                  {opt.label}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
           {notice && (
             <p
               role="status"
@@ -189,30 +149,6 @@ export default function Home() {
             </p>
           )}
         </form>
-
-        <div
-          className="anim-rise mt-12 border-t border-line pt-6"
-          style={{ animationDelay: "240ms" }}
-        >
-          <button
-            onClick={onDemo}
-            disabled={analyzing}
-            className="group flex w-full items-center justify-between rounded-lg border border-line bg-white/50 px-5 py-4 text-left transition-colors hover:border-moss disabled:opacity-50"
-          >
-            <span>
-              <span className="block text-[0.85rem] font-medium text-ink">
-                Try the demo — expressjs/express
-              </span>
-              <span className="mt-0.5 block text-[0.78rem] text-ink-soft">
-                A two-minute taste of the adaptive loop: lesson, test, and a
-                path that changes with your answers.
-              </span>
-            </span>
-            <span className="ml-4 text-moss transition-transform group-hover:translate-x-0.5">
-              →
-            </span>
-          </button>
-        </div>
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
 import { and, asc, desc, eq } from "drizzle-orm";
-import { seedFastapiJourney } from "../engine";
 import type { LearningJourney } from "../types";
 import { getDb } from "./db";
 import {
@@ -17,17 +16,7 @@ import { assembleJourney, journeyToRow } from "./journey-mapping";
 
 export async function ensureUser(userId: string): Promise<void> {
   const db = getDb();
-  const inserted = await db
-    .insert(users)
-    .values({ id: userId })
-    .onConflictDoNothing()
-    .returning({ id: users.id });
-
-  // Brand-new browser identity: seed the fastapi journey so the sidebar
-  // demonstrates history at a glance (same seed the client used locally).
-  if (inserted.length > 0) {
-    await upsertJourney(userId, seedFastapiJourney(Date.now()));
-  }
+  await db.insert(users).values({ id: userId }).onConflictDoNothing();
 }
 
 export async function listJourneys(userId: string): Promise<LearningJourney[]> {
