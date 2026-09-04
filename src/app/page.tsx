@@ -55,27 +55,47 @@ export default function Home() {
     setAnalyzing(true);
     setNotice(null);
     try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-      const data = (await res.json()) as {
-        model?: RepositoryModel;
-        message?: string;
-      };
-      if (!res.ok || !data.model) {
-        setNotice(
-          data.message ?? "The analysis didn't complete — please try again.",
-        );
-        return;
+      // Async job protocol: the POST starts the analysis; we re-POST to poll
+      // until it's done (analysis can take a few minutes).
+      const deadline = Date.now() + 8 * 60_000;
+      for (;;) {
+        const res = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+        const data = (await res.json()) as {
+          status?: string;
+          model?: RepositoryModel;
+          message?: string;
+        };
+        if (res.ok && data.status === "done" && data.model) {
+          const fresh = newLiveJourney(
+            data.model,
+            style as QuestionStyle,
+            nowMs(),
+          );
+          // Returning to an already-studied repo resumes it instead of restarting.
+          const existing = journeys.find((j) => j.repoId === fresh.repoId);
+          const journey = existing ?? fresh;
+          if (!existing) upsert(journey);
+          router.push(`/j/${journey.id}`);
+          return;
+        }
+        if (res.status !== 202) {
+          setNotice(
+            data.message ?? "The analysis didn't complete — please try again.",
+          );
+          return;
+        }
+        if (Date.now() > deadline) {
+          setNotice(
+            "The analysis is taking unusually long. It may still finish — try the same URL again in a minute.",
+          );
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 5000));
       }
-      const fresh = newLiveJourney(data.model, style as QuestionStyle, nowMs());
-      // Returning to an already-studied repo resumes it instead of restarting.
-      const existing = journeys.find((j) => j.repoId === fresh.repoId);
-      const journey = existing ?? fresh;
-      if (!existing) upsert(journey);
-      router.push(`/j/${journey.id}`);
     } catch {
       setNotice("Something went wrong reaching the analyzer — please try again.");
     } finally {

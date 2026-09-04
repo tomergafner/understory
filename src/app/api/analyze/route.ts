@@ -1,14 +1,7 @@
-import { eq, and, desc } from "drizzle-orm";
 import { hasApiKey } from "@/lib/server/anthropic";
-import {
-  analyzeAgentically,
-  toRepositoryModelParts,
-} from "@/lib/server/analyze";
-import { getDb, hasDb } from "@/lib/server/db";
-import { analyses } from "@/lib/server/db/schema";
+import { getOrStartAnalysis } from "@/lib/server/analysis-jobs";
 import { IngestError, resolveRepoHead } from "@/lib/server/github";
 import { AnalyzeRequestSchema } from "@/lib/server/schemas";
-import type { RepositoryModel } from "@/lib/types";
 
 const INGEST_STATUS: Record<IngestError["code"], number> = {
   invalid_url: 400,
@@ -20,6 +13,9 @@ const INGEST_STATUS: Record<IngestError["code"], number> = {
   github_error: 502,
 };
 
+// Async job protocol: the same POST both starts and polls the analysis.
+// Responses: 200 {status:"done", ...} | 202 {status:"analyzing"} |
+// 502 {status:"failed", message} (retryable) | 4xx ingest errors.
 export async function POST(req: Request) {
   const parsed = AnalyzeRequestSchema.safeParse(
     await req.json().catch(() => null),
@@ -52,60 +48,23 @@ export async function POST(req: Request) {
     throw err;
   }
 
-  // Learned once per commit (CLAUDE.md §13): reuse a stored analysis.
-  if (hasDb()) {
-    const existing = await getDb()
-      .select()
-      .from(analyses)
-      .where(
-        and(
-          eq(analyses.repoId, head.repoId),
-          eq(analyses.commitSha, head.commitSha),
-        ),
-      )
-      .orderBy(desc(analyses.createdAt))
-      .limit(1);
-    if (existing.length > 0) {
-      return Response.json({
-        repoId: head.repoId,
-        commitSha: head.commitSha,
-        model: existing[0].model as RepositoryModel,
-        cached: true,
-      });
-    }
-  }
-
-  try {
-    const gen = await analyzeAgentically(head);
-    const { model, evidence } = toRepositoryModelParts(gen, head);
-
-    if (hasDb()) {
-      await getDb()
-        .insert(analyses)
-        .values({
-          repoId: head.repoId,
-          commitSha: head.commitSha,
-          model: model as object,
-          evidence: evidence as object,
-        })
-        .onConflictDoNothing();
-    }
-
+  const state = await getOrStartAnalysis(head);
+  if (state.status === "done") {
     return Response.json({
+      status: "done",
       repoId: head.repoId,
       commitSha: head.commitSha,
-      model,
-      cached: false,
+      model: state.model,
     });
-  } catch (err) {
-    console.error("analyze failed", err);
+  }
+  if (state.status === "failed") {
     return Response.json(
-      {
-        error: "analysis_failed",
-        message:
-          "The analysis didn't complete — this can happen on very large or unusual repositories. Try again, or try a smaller repo.",
-      },
+      { status: "failed", error: "analysis_failed", message: state.message },
       { status: 502 },
     );
   }
+  return Response.json(
+    { status: "analyzing", repoId: head.repoId, commitSha: head.commitSha },
+    { status: 202 },
+  );
 }
