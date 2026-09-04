@@ -13,11 +13,14 @@ describe.skipIf(!enabled)("real API smoke", () => {
       const { GeneratedLessonSchema } = await import("@/lib/server/schemas");
       const { buildLessonPrompt } = await import("@/lib/server/prompts");
       const { newDemoJourney } = await import("@/lib/engine");
+      const { getRepoContent } = await import("@/lib/content");
 
+      const { model, evidence } = getRepoContent("express");
       const lesson = await callModel(
         "smoke",
         buildLessonPrompt({
-          repoId: "express",
+          model,
+          evidence,
           conceptId: "error-handling",
           goal: "architecture",
           questionStyle: "mixed",

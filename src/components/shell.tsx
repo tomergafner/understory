@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { computeCoverage } from "@/lib/coverage";
-import { getRepoContent } from "@/lib/content";
+import { modelForJourney } from "@/lib/content";
 import { sortByLastActive } from "@/lib/store";
 import { timeAgo } from "@/lib/time";
 import { JourneysProvider, useJourneysCtx } from "./journeys-context";
@@ -40,7 +40,7 @@ function SidebarJourneys() {
       </p>
       <ul className="flex flex-col gap-0.5">
         {items.map((j) => {
-          const { model } = getRepoContent(j.repoId);
+          const model = modelForJourney(j);
           const { percent } = computeCoverage(model, j.goal, j.learner);
           const href = `/j/${j.id}`;
           const active = pathname === href;

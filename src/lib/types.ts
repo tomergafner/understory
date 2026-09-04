@@ -126,6 +126,8 @@ export interface LearnerState {
 export interface LearningJourney {
   id: string;
   repoId: string;
+  // Present for live-analyzed repos; fixture repos resolve their model from code.
+  model?: RepositoryModel;
   repoDisplayName: string;
   goal: Goal;
   goalLabel: string;

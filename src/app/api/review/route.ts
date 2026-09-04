@@ -1,23 +1,31 @@
-import { getRepoContent } from "@/lib/content";
 import { planReviewFrom, type ReviewPlan } from "@/lib/engine";
 import { hasApiKey } from "@/lib/server/anthropic";
+import { resolveContent } from "@/lib/server/content-resolver";
 import { callModel } from "@/lib/server/model-call";
 import { buildReviewPrompt } from "@/lib/server/prompts";
 import { ReviewPlanSchema, ReviewRequestSchema } from "@/lib/server/schemas";
 import type { LearnerState, Question } from "@/lib/types";
 
 export async function POST(req: Request) {
-  let body;
-  try {
-    body = ReviewRequestSchema.parse(await req.json());
-    getRepoContent(body.repoId);
-  } catch {
+  const parsed = ReviewRequestSchema.safeParse(
+    await req.json().catch(() => null),
+  );
+  if (!parsed.success) {
     return Response.json({ error: "invalid_request" }, { status: 400 });
+  }
+  const body = parsed.data;
+
+  let content;
+  try {
+    content = await resolveContent(body.repoId);
+  } catch {
+    return Response.json({ error: "unknown_repo" }, { status: 404 });
   }
 
   const learner = body.learner as LearnerState;
 
   const fixture = () => {
+    if (!content.isFixture) return null;
     const plan = planReviewFrom(
       body.repoId,
       learner,
@@ -37,7 +45,7 @@ export async function POST(req: Request) {
     const gen = await callModel(
       "review",
       buildReviewPrompt({
-        repoId: body.repoId,
+        model: content.model,
         goal: body.goal,
         kind: body.kind,
         learner,

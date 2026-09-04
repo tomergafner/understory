@@ -3,6 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useJourneysCtx } from "@/components/journeys-context";
+import { newLiveJourney } from "@/lib/engine";
+import { nowMs } from "@/lib/time";
+import type { QuestionStyle, RepositoryModel } from "@/lib/types";
 
 const STYLE_OPTIONS = [
   { id: "mc", label: "Multiple choice" },
@@ -31,25 +34,53 @@ function validateRepoUrl(value: string): string | null {
 
 export default function Home() {
   const router = useRouter();
-  const { startDemo } = useJourneysCtx();
+  const { startDemo, upsert, journeys } = useJourneysCtx();
   const [url, setUrl] = useState("");
   const [style, setStyle] = useState<string>("mixed");
   const [notice, setNotice] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
-  function onLearn(e: React.FormEvent) {
+  async function onLearn(e: React.FormEvent) {
     e.preventDefault();
+    if (!url.trim()) {
+      setNotice("Paste a GitHub repository URL, or try the demo below.");
+      return;
+    }
     const error = validateRepoUrl(url);
     if (error) {
       setNotice(error);
       return;
     }
-    if (!url.trim()) {
-      setNotice("Paste a GitHub repository URL, or try the demo below.");
-      return;
+
+    setAnalyzing(true);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = (await res.json()) as {
+        model?: RepositoryModel;
+        message?: string;
+      };
+      if (!res.ok || !data.model) {
+        setNotice(
+          data.message ?? "The analysis didn't complete — please try again.",
+        );
+        return;
+      }
+      const fresh = newLiveJourney(data.model, style as QuestionStyle, nowMs());
+      // Returning to an already-studied repo resumes it instead of restarting.
+      const existing = journeys.find((j) => j.repoId === fresh.repoId);
+      const journey = existing ?? fresh;
+      if (!existing) upsert(journey);
+      router.push(`/j/${journey.id}`);
+    } catch {
+      setNotice("Something went wrong reaching the analyzer — please try again.");
+    } finally {
+      setAnalyzing(false);
     }
-    setNotice(
-      "Live repository analysis arrives later in this build. The demo below shows the full learning loop today.",
-    );
   }
 
   function onDemo() {
@@ -100,11 +131,23 @@ export default function Home() {
             />
             <button
               type="submit"
-              className="shrink-0 rounded-lg bg-moss px-5 py-3 text-[0.85rem] font-semibold text-cream transition-colors hover:bg-moss-deep"
+              disabled={analyzing}
+              className="shrink-0 rounded-lg bg-moss px-5 py-3 text-[0.85rem] font-semibold text-cream transition-colors hover:bg-moss-deep disabled:cursor-wait disabled:opacity-60"
             >
-              Learn this repo
+              {analyzing ? "Analyzing…" : "Learn this repo"}
             </button>
           </div>
+
+          {analyzing && (
+            <p
+              role="status"
+              className="anim-fadein mt-4 text-[0.82rem] leading-relaxed text-ink-soft"
+            >
+              Claude is reading the repository right now — choosing files,
+              following the architecture, building your curriculum. This
+              typically takes one to three minutes.
+            </p>
+          )}
 
           <fieldset className="mt-5">
             <legend className="text-[0.72rem] font-medium uppercase tracking-[0.13em] text-ink-faint">
@@ -150,7 +193,8 @@ export default function Home() {
         >
           <button
             onClick={onDemo}
-            className="group flex w-full items-center justify-between rounded-lg border border-line bg-white/50 px-5 py-4 text-left transition-colors hover:border-moss"
+            disabled={analyzing}
+            className="group flex w-full items-center justify-between rounded-lg border border-line bg-white/50 px-5 py-4 text-left transition-colors hover:border-moss disabled:opacity-50"
           >
             <span>
               <span className="block text-[0.85rem] font-medium text-ink">

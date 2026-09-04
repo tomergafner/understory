@@ -35,8 +35,26 @@ export const journeys = pgTable(
     createdAt: bigint("created_at", { mode: "number" }).notNull(), // epoch ms
     lastActiveAt: bigint("last_active_at", { mode: "number" }).notNull(),
     learner: jsonb("learner").notNull(),
+    // Live-repo journeys carry their RepositoryModel so the client's coverage
+    // math works offline and unchanged; null for fixture repos.
+    model: jsonb("model"),
   },
   (t) => [primaryKey({ columns: [t.userId, t.id] })],
+);
+
+// One Claude analysis per repo+commit, shared across learners (CLAUDE.md §13).
+export const analyses = pgTable(
+  "analyses",
+  {
+    repoId: text("repo_id").notNull(), // "gh:owner/repo"
+    commitSha: text("commit_sha").notNull(),
+    model: jsonb("model").notNull(), // RepositoryModel
+    evidence: jsonb("evidence").notNull(), // Record<conceptId, CodeExcerpt>
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.repoId, t.commitSha] })],
 );
 
 // Append-only assessment evidence: one row per completed tutorial step.
