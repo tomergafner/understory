@@ -5,6 +5,7 @@ import type {
   LearningJourney,
   Question,
   ReviewRecord,
+  StepOutcome,
   StepRecord,
 } from "./types";
 
@@ -81,30 +82,35 @@ export interface SubmitResult {
   step: StepRecord;
 }
 
-// Grades only the questions actually asked (question-style preference can
-// hide some); decide() scripts tolerate missing ids.
-export function submitLesson(
+// The first in-scope concept the learner hasn't been taught — the
+// deterministic fallback when a model decision is missing or invalid.
+export function nextUntaughtConcept(
+  repoId: string,
+  goal: LearningJourney["goal"],
+  learner: LearningJourney["learner"],
+): string | null {
+  const { model } = getRepoContent(repoId);
+  const candidate = model.concepts.find((c) => {
+    const status = learner.conceptStatus[c.id] ?? "untaught";
+    return c.goals.includes(goal) && status === "untaught";
+  });
+  return candidate?.id ?? null;
+}
+
+// Deterministic application of a step outcome — the single state-update path
+// shared by fixture scripts and server (Claude) decisions.
+export function applyStepOutcome(
   journey: LearningJourney,
-  lesson: Lesson,
-  asked: Question[],
+  conceptId: string,
   answers: Record<string, string>,
+  outcome: StepOutcome,
   now: number,
 ): SubmitResult {
-  const content = getRepoContent(journey.repoId);
-  const correct: Record<string, boolean> = {};
-  for (const q of asked) {
-    correct[q.id] = gradeAnswer(q, answers[q.id] ?? "");
-  }
-
-  const decide = content.decide[lesson.conceptId];
-  if (!decide) throw new Error(`No decision script for concept: ${lesson.conceptId}`);
-  const outcome = decide(correct);
-
   const step: StepRecord = {
     id: `step-${journey.steps.length + 1}`,
-    conceptId: lesson.conceptId,
+    conceptId,
     answers,
-    correct,
+    correct: outcome.correct,
     assessment: outcome.assessment,
     adaptationMessage: outcome.adaptationMessage,
     nextConceptId: outcome.nextConceptId,
@@ -119,11 +125,11 @@ export function submitLesson(
       ...journey.learner,
       conceptStatus: {
         ...journey.learner.conceptStatus,
-        [lesson.conceptId]: outcome.conceptStatus,
+        [conceptId]: outcome.conceptStatus,
       },
       mastery: {
         ...journey.learner.mastery,
-        [lesson.conceptId]: {
+        [conceptId]: {
           score: outcome.assessment.mastery,
           confidence: outcome.assessment.confidence,
           lastTestedAt: now,
@@ -142,6 +148,72 @@ export function submitLesson(
   return { journey: updated, step };
 }
 
+// Generic outcome for concepts without a scripted decide() — keeps the
+// fixture fallback working at any curriculum depth.
+export function genericOutcome(
+  repoId: string,
+  goal: LearningJourney["goal"],
+  learner: LearningJourney["learner"],
+  conceptId: string,
+  correct: Record<string, boolean>,
+): StepOutcome {
+  const wrong = Object.values(correct).filter((v) => !v).length;
+  const allRight = wrong === 0;
+  const nextId = nextUntaughtConcept(repoId, goal, {
+    ...learner,
+    conceptStatus: { ...learner.conceptStatus, [conceptId]: "understood" },
+  });
+  return {
+    conceptStatus: allRight ? "understood" : "partial",
+    nextConceptId: nextId,
+    adaptationMessage: allRight
+      ? "That landed. Your path continues to the next concept in scope."
+      : "Part of that is still soft — we'll keep it in view as we continue.",
+    correct,
+    assessment: {
+      mastery: allRight ? 0.85 : 0.55,
+      conceptsDemonstrated: [],
+      misconceptions: [],
+      missingPoints: [],
+      feedback: allRight
+        ? "All answers correct."
+        : "Some answers missed — worth a second look before moving deep.",
+      recommendedAction: allRight ? "advance" : "reinforce",
+      confidence: 0.6,
+    },
+  };
+}
+
+// Fixture-path submission: grade deterministically, run the scripted (or
+// generic) decision, apply. The server route mirrors this shape with a
+// Claude decision instead. Grades only the questions actually asked.
+export function submitLesson(
+  journey: LearningJourney,
+  lesson: Lesson,
+  asked: Question[],
+  answers: Record<string, string>,
+  now: number,
+): SubmitResult {
+  const content = getRepoContent(journey.repoId);
+  const correct: Record<string, boolean> = {};
+  for (const q of asked) {
+    correct[q.id] = gradeAnswer(q, answers[q.id] ?? "");
+  }
+
+  const decide = content.decide[lesson.conceptId];
+  const outcome: StepOutcome = decide
+    ? { ...decide(correct), correct }
+    : genericOutcome(
+        journey.repoId,
+        journey.goal,
+        journey.learner,
+        lesson.conceptId,
+        correct,
+      );
+
+  return applyStepOutcome(journey, lesson.conceptId, answers, outcome, now);
+}
+
 export interface ReviewPlan {
   kind: "last_lesson" | "broad";
   conceptIds: string[];
@@ -149,17 +221,25 @@ export interface ReviewPlan {
   reason: string;
 }
 
-export function planReview(
-  journey: LearningJourney,
+export function lastTaughtConceptId(journey: LearningJourney): string | null {
+  return (
+    journey.steps.at(-1)?.conceptId ??
+    journey.learner.recommendedNext?.conceptId ??
+    null
+  );
+}
+
+// Journey-free form usable by both the client fixture path and the server
+// fallback (the server only receives learner state, not the whole journey).
+export function planReviewFrom(
+  repoId: string,
+  learner: LearningJourney["learner"],
   kind: "last_lesson" | "broad",
+  lastConceptId: string | null,
 ): ReviewPlan | null {
-  const content = getRepoContent(journey.repoId);
+  const content = getRepoContent(repoId);
 
   if (kind === "last_lesson") {
-    const lastConceptId =
-      journey.steps.at(-1)?.conceptId ??
-      journey.learner.recommendedNext?.conceptId ??
-      null;
     if (!lastConceptId) return null;
     const bank = content.reviewBank[lastConceptId];
     const questions =
@@ -174,7 +254,7 @@ export function planReview(
   }
 
   // Broad review: sample assessed concepts, weakest and stalest first.
-  const assessed = Object.entries(journey.learner.mastery)
+  const assessed = Object.entries(learner.mastery)
     .map(([conceptId, m]) => ({ conceptId, ...m }))
     .sort(
       (a, b) =>
@@ -198,6 +278,18 @@ export function planReview(
     reason:
       "Sampled from what you've covered, weighted toward concepts that looked weak or haven't been tested recently.",
   };
+}
+
+export function planReview(
+  journey: LearningJourney,
+  kind: "last_lesson" | "broad",
+): ReviewPlan | null {
+  return planReviewFrom(
+    journey.repoId,
+    journey.learner,
+    kind,
+    lastTaughtConceptId(journey),
+  );
 }
 
 export function submitReview(

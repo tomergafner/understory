@@ -62,6 +62,38 @@ waiting on Cloudflare Universal SSL issuance at time of writing.
 - The plugin's railway-api.sh reads ~/.railway/config.json `.user.token`;
   current CLI stores `.user.accessToken`.
 
+## Phase 3 — Real adaptive tutorial loop (2026-09-03)
+
+**What works:**
+- Three server routes (`/api/lesson`, `/api/assess`, `/api/review`) drive the
+  loop with Claude (default model `claude-fable-5`, env-configurable), using
+  `messages.parse` + zod structured outputs; the stable tutor system prompt is
+  prompt-cached.
+- Deterministic guardrails everywhere the model meets state: MC grading is
+  application code and overrides the model; free-form is graded semantically;
+  concept status mapping (misconception/understood/partial) is deterministic;
+  an invalid nextConceptId falls back to the first untaught in-scope concept.
+- Grade + next-step decision is ONE model call (halves loop latency).
+- Fixture fallback: no API key or any model failure → the Phase 1 scripted
+  engine serves the same response shape, marked `source: "fixture"` (UI shows
+  a subtle "scripted" tag). CI stays deterministic; the demo survives outages.
+- Concept summaries + per-concept code evidence added to fixtures so lessons
+  stay grounded at any curriculum depth; reviews are MC-only by design
+  (quick checks, deterministic grading).
+- Client: calm loading narration, error + retry per §15, answers preserved on
+  grading failure.
+- 33 unit/route tests (incl. guardrails and schema-rejection fallback) +
+  1 real-API smoke behind RUN_REAL_API; e2e passes in fixture mode.
+
+**What remains:** ANTHROPIC_API_KEY on Railway (user, dashboard), then prod
+verification of model mode. Then Phase 4 (Postgres persistence).
+
+**Notable learning:**
+- CLAUDE.md's `claude-fable-5-1` is not a real model ID; the correct current
+  ID is `claude-fable-5` (per the API model catalog). Code defaults there.
+- The e2e suite is only deterministic keyless; with a key configured the
+  demo serves live model lessons, so prod content assertions don't apply.
+
 **Notable failure/learning:**
 - create-next-app's generated CLAUDE.md pointer clobbered the master
   instructions during scaffold move — caught immediately because Phase 0 was

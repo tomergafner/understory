@@ -1,4 +1,4 @@
-import type { Lesson, Question, RepositoryModel } from "../types";
+import type { CodeExcerpt, Lesson, Question, RepositoryModel } from "../types";
 
 // Fixture for the pre-existing sidebar journey — proves history/resume at a glance.
 // Excerpts approximate the real source; Phase 5 replaces fixtures with pinned reads.
@@ -12,16 +12,40 @@ export const fastapiModel: RepositoryModel = {
   description: "FastAPI framework, high performance, easy to learn, fast to code",
   languages: ["Python"],
   concepts: [
-    { id: "what-is-fastapi", title: "What FastAPI is", level: 1, weight: 2, goals: ["understand", "use", "architecture", "contribute"], prerequisites: [] },
-    { id: "path-operations", title: "Path operations", level: 2, weight: 3, goals: ["understand", "use", "architecture", "contribute"], prerequisites: ["what-is-fastapi"] },
-    { id: "pydantic-validation", title: "Pydantic models as contracts", level: 2, weight: 3, goals: ["use", "architecture", "contribute"], prerequisites: ["path-operations"] },
-    { id: "async-endpoints", title: "Sync vs async endpoints", level: 3, weight: 2, goals: ["use", "architecture", "contribute"], prerequisites: ["path-operations"] },
-    { id: "dependency-injection", title: "Dependency injection", level: 4, weight: 3, goals: ["architecture", "contribute"], prerequisites: ["path-operations"] },
-    { id: "routing-groups", title: "Routers and composition", level: 4, weight: 2, goals: ["architecture", "contribute"], prerequisites: ["path-operations"] },
-    { id: "openapi-docs", title: "OpenAPI generation", level: 4, weight: 2, goals: ["use", "architecture", "contribute"], prerequisites: ["pydantic-validation"] },
-    { id: "middleware-cors", title: "Middleware and CORS", level: 3, weight: 2, goals: ["use", "architecture", "contribute"], prerequisites: ["path-operations"] },
-    { id: "background-tasks", title: "Background tasks", level: 3, weight: 2, goals: ["use", "architecture", "contribute"], prerequisites: ["path-operations"] },
+    { id: "what-is-fastapi", title: "What FastAPI is", summary: "A Python web framework where type hints drive validation, serialization, and docs.", level: 1, weight: 2, goals: ["understand", "use", "architecture", "contribute"], prerequisites: [] },
+    { id: "path-operations", title: "Path operations", summary: "Decorated functions bound to method+path; typed parameters are matched and converted from the request.", level: 2, weight: 3, goals: ["understand", "use", "architecture", "contribute"], prerequisites: ["what-is-fastapi"] },
+    { id: "pydantic-validation", title: "Pydantic models as contracts", summary: "Request/response bodies validate against Pydantic models; failures 422 before handlers run.", level: 2, weight: 3, goals: ["use", "architecture", "contribute"], prerequisites: ["path-operations"] },
+    { id: "async-endpoints", title: "Sync vs async endpoints", summary: "async def runs on the event loop; plain def is offloaded to a threadpool so blocking I/O doesn't stall.", level: 3, weight: 2, goals: ["use", "architecture", "contribute"], prerequisites: ["path-operations"] },
+    { id: "dependency-injection", title: "Dependency injection", summary: "Handlers declare needs via Depends(); a per-request resolver walks the dependency tree with caching.", level: 4, weight: 3, goals: ["architecture", "contribute"], prerequisites: ["path-operations"] },
+    { id: "routing-groups", title: "Routers and composition", summary: "APIRouter groups path operations; include_router composes them with shared prefixes and dependencies.", level: 4, weight: 2, goals: ["architecture", "contribute"], prerequisites: ["path-operations"] },
+    { id: "openapi-docs", title: "OpenAPI generation", summary: "The OpenAPI schema is generated from the same type declarations that drive validation.", level: 4, weight: 2, goals: ["use", "architecture", "contribute"], prerequisites: ["pydantic-validation"] },
+    { id: "middleware-cors", title: "Middleware and CORS", summary: "Starlette middleware wraps the whole app; CORS is a stock middleware configured per-origin.", level: 3, weight: 2, goals: ["use", "architecture", "contribute"], prerequisites: ["path-operations"] },
+    { id: "background-tasks", title: "Background tasks", summary: "BackgroundTasks queues work to run after the response is sent, on the same worker.", level: 3, weight: 2, goals: ["use", "architecture", "contribute"], prerequisites: ["path-operations"] },
   ],
+};
+
+export const fastapiEvidence: Record<string, CodeExcerpt> = {
+  "routing-groups": {
+    path: "fastapi/routing.py",
+    startLine: 1236,
+    endLine: 1250,
+    code: `def include_router(
+    self,
+    router: "APIRouter",
+    *,
+    prefix: str = "",
+    dependencies: Optional[Sequence[params.Depends]] = None,
+    # ...
+) -> None:
+    for route in router.routes:
+        # each route is re-registered with the combined prefix
+        # and merged dependencies
+        self.add_api_route(
+            prefix + route.path,
+            route.endpoint,
+            # ...
+        )`,
+  },
 };
 
 export const fastapiLessons: Record<string, Lesson> = {

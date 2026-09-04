@@ -1,5 +1,6 @@
 import type {
   Assessment,
+  CodeExcerpt,
   Lesson,
   Question,
   RepositoryModel,
@@ -20,16 +21,117 @@ export const expressModel: RepositoryModel = {
   concepts: [
     // NOTE: router-stack has goals: [] on purpose — it enters scope only when the
     // adaptive path pulls it in (remediation), which visibly grows the denominator.
-    { id: "middleware-pipeline", title: "The middleware pipeline", level: 1, weight: 2, goals: ["understand", "use", "architecture", "contribute"], prerequisites: [] },
-    { id: "routing-layer", title: "The router: choosing the gate", level: 4, weight: 3, goals: ["architecture", "contribute"], prerequisites: ["middleware-pipeline"] },
-    { id: "router-stack", title: "Where order lives: the layer stack", level: 4, weight: 2, goals: [], prerequisites: ["middleware-pipeline"] },
-    { id: "request-response", title: "Augmented req and res", level: 4, weight: 2, goals: ["architecture", "contribute"], prerequisites: ["middleware-pipeline"] },
-    { id: "mounting", title: "Composing apps with mounting", level: 4, weight: 2, goals: ["architecture", "contribute"], prerequisites: ["routing-layer"] },
-    { id: "error-handling", title: "The error-handling flow", level: 4, weight: 3, goals: ["architecture", "contribute"], prerequisites: ["middleware-pipeline"] },
-    { id: "http-boundary", title: "The boundary with Node's http server", level: 4, weight: 2, goals: ["architecture", "contribute"], prerequisites: [] },
-    { id: "route-matching", title: "Path matching and params", level: 4, weight: 2, goals: ["architecture", "contribute"], prerequisites: ["routing-layer"] },
-    { id: "vs-alternatives", title: "Design tradeoffs vs Koa and Fastify", level: 5, weight: 2, goals: ["architecture", "contribute"], prerequisites: ["routing-layer", "error-handling"] },
+    { id: "middleware-pipeline", title: "The middleware pipeline", summary: "Every request flows through an ordered line of small functions that can modify it, answer it, or pass it along.", level: 1, weight: 2, goals: ["understand", "use", "architecture", "contribute"], prerequisites: [] },
+    { id: "routing-layer", title: "The router: choosing the gate", summary: "The router is itself a pipeline layer that walks its own stack of routes, matching method and path in registration order.", level: 4, weight: 3, goals: ["architecture", "contribute"], prerequisites: ["middleware-pipeline"] },
+    { id: "router-stack", title: "Where order lives: the layer stack", summary: "Middleware order is literally an array of Layers pushed by use(); there is no scheduler or reordering.", level: 4, weight: 2, goals: [], prerequisites: ["middleware-pipeline"] },
+    { id: "request-response", title: "Augmented req and res", summary: "Express extends Node's req/res via prototype objects, adding helpers like res.send and req.params without wrapping them.", level: 4, weight: 2, goals: ["architecture", "contribute"], prerequisites: ["middleware-pipeline"] },
+    { id: "mounting", title: "Composing apps with mounting", summary: "app.use('/prefix', subapp) nests one pipeline inside another, with the mount path stripped for the inner app.", level: 4, weight: 2, goals: ["architecture", "contribute"], prerequisites: ["routing-layer"] },
+    { id: "error-handling", title: "The error-handling flow", summary: "next(err) skips ordinary layers and finds 4-argument error handlers; arity is the routing signal.", level: 4, weight: 3, goals: ["architecture", "contribute"], prerequisites: ["middleware-pipeline"] },
+    { id: "http-boundary", title: "The boundary with Node's http server", summary: "app is just a request listener; app.listen is a one-line convenience around http.createServer(app).", level: 4, weight: 2, goals: ["architecture", "contribute"], prerequisites: [] },
+    { id: "route-matching", title: "Path matching and params", summary: "Paths compile to regexes via path-to-regexp; named segments become req.params captures.", level: 4, weight: 2, goals: ["architecture", "contribute"], prerequisites: ["routing-layer"] },
+    { id: "vs-alternatives", title: "Design tradeoffs vs Koa and Fastify", summary: "Express chose callback middleware and mutable req/res; Koa chose async composition, Fastify chose schema-driven speed.", level: 5, weight: 2, goals: ["architecture", "contribute"], prerequisites: ["routing-layer", "error-handling"] },
   ],
+};
+
+// Per-concept code evidence for grounding model-generated lessons (Phase 3).
+// Approximates the real 4.x source; Phase 5 replaces with pinned reads.
+export const expressEvidence: Record<string, CodeExcerpt> = {
+  "request-response": {
+    path: "lib/response.js",
+    startLine: 107,
+    endLine: 123,
+    code: `res.send = function send(body) {
+  var chunk = body;
+  // ...
+  switch (typeof chunk) {
+    case 'string':
+      if (!this.get('Content-Type')) {
+        this.type('html');
+      }
+      break;
+    case 'object':
+      if (chunk === null) { chunk = ''; }
+      else if (Buffer.isBuffer(chunk)) { /* ... */ }
+      else { return this.json(chunk); }
+      break;
+  }
+  // ...
+  return this.end(chunk, encoding);
+};`,
+  },
+  mounting: {
+    path: "lib/application.js",
+    startLine: 187,
+    endLine: 202,
+    code: `app.use = function use(fn) {
+  // ...
+  fns.forEach(function (fn) {
+    // non-express functions are handled by the router directly
+    if (!fn || !fn.handle || !fn.set) {
+      return router.use(path, fn);
+    }
+
+    fn.mountpath = path;
+    fn.parent = this;
+
+    // restore .app property on req and res after the mounted app runs
+    router.use(path, function mounted_app(req, res, next) { /* ... */ });
+  }, this);
+  return this;
+};`,
+  },
+  "error-handling": {
+    path: "lib/router/layer.js",
+    startLine: 62,
+    endLine: 77,
+    code: `Layer.prototype.handle_error = function handle_error(error, req, res, next) {
+  var fn = this.handle;
+
+  if (fn.length !== 4) {
+    // not a standard error handler
+    return next(error);
+  }
+
+  try {
+    fn(error, req, res, next);
+  } catch (err) {
+    next(err);
+  }
+};`,
+  },
+  "http-boundary": {
+    path: "lib/application.js",
+    startLine: 616,
+    endLine: 621,
+    code: `app.listen = function listen() {
+  var server = http.createServer(this);
+  return server.listen.apply(server, arguments);
+};`,
+  },
+  "route-matching": {
+    path: "lib/router/layer.js",
+    startLine: 92,
+    endLine: 110,
+    code: `Layer.prototype.match = function match(path) {
+  var match;
+
+  if (path != null) {
+    // ...
+    match = this.regexp.exec(path);
+  }
+
+  if (!match) {
+    this.params = undefined;
+    this.path = undefined;
+    return false;
+  }
+
+  this.params = {};
+  this.path = match[0];
+  // named captures from path-to-regexp become req.params
+  return true;
+};`,
+  },
 };
 
 const lesson1Questions: Question[] = [

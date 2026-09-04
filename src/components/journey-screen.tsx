@@ -2,12 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { getConceptTitle, getLesson, getRepoContent } from "@/lib/content";
+import {
+  fetchAssess,
+  fetchLesson,
+  fetchReviewPlan,
+  type ContentSource,
+} from "@/lib/client-api";
+import { getConceptTitle, getRepoContent } from "@/lib/content";
 import { computeCoverage } from "@/lib/coverage";
 import {
+  applyStepOutcome,
+  lastTaughtConceptId,
   newDemoJourney,
-  planReview,
-  submitLesson,
   submitReview,
   type ReviewPlan,
 } from "@/lib/engine";
@@ -18,6 +24,7 @@ import type {
   Question,
   QuestionStyle,
   ReviewRecord,
+  StepOutcome,
   StepRecord,
 } from "@/lib/types";
 import { useJourneysCtx } from "./journeys-context";
@@ -34,9 +41,9 @@ type View =
   | { kind: "onboard" }
   | { kind: "lesson"; conceptId: string }
   | { kind: "feedback"; lesson: Lesson; asked: Question[]; step: StepRecord; prevPercent: number }
-  | { kind: "endOfPath"; nextConceptId: string | null }
+  | { kind: "endOfPath" }
   | { kind: "resume" }
-  | { kind: "review"; plan: ReviewPlan }
+  | { kind: "review"; reviewKind: "last_lesson" | "broad" }
   | { kind: "reviewResult"; plan: ReviewPlan; review: ReviewRecord }
   | { kind: "notFound" };
 
@@ -105,12 +112,9 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
       : null;
 
   function goToConcept(conceptId: string | null) {
-    if (!conceptId) {
-      setView({ kind: "endOfPath", nextConceptId: null });
-      return;
-    }
-    const lesson = getLesson(journey!.repoId, conceptId);
-    setView(lesson ? { kind: "lesson", conceptId } : { kind: "endOfPath", nextConceptId: conceptId });
+    setView(
+      conceptId ? { kind: "lesson", conceptId } : { kind: "endOfPath" },
+    );
   }
 
   return (
@@ -153,10 +157,18 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
 
         {view.kind === "lesson" && (
           <LessonFlow
+            key={view.conceptId}
             journey={journey}
             conceptId={view.conceptId}
             prevPercent={coverage.percent}
-            onSubmitted={(lesson, asked, step, prevPercent, updated) => {
+            onSubmitted={(lesson, asked, answers, outcome, prevPercent) => {
+              const { journey: updated, step } = applyStepOutcome(
+                journey,
+                lesson.conceptId,
+                answers,
+                outcome,
+                nowMs(),
+              );
               upsert(updated);
               setView({ kind: "feedback", lesson, asked, step, prevPercent });
             }}
@@ -177,15 +189,7 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
 
         {view.kind === "endOfPath" && (
           <EndOfPathView
-            nextTitle={
-              view.nextConceptId
-                ? getConceptTitle(journey.repoId, view.nextConceptId)
-                : null
-            }
-            onReview={() => {
-              const plan = planReview(journey, "broad");
-              if (plan) setView({ kind: "review", plan });
-            }}
+            onReview={() => setView({ kind: "review", reviewKind: "broad" })}
           />
         )}
 
@@ -195,10 +199,7 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
             now={now}
             percent={coverage.percent}
             onContinue={() => goToConcept(journey.learner.recommendedNext?.conceptId ?? null)}
-            onReview={(kind) => {
-              const plan = planReview(journey, kind);
-              if (plan) setView({ kind: "review", plan });
-            }}
+            onReview={(kind) => setView({ kind: "review", reviewKind: kind })}
             onRestart={
               journey.id === "demo-express"
                 ? () => {
@@ -212,12 +213,14 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
 
         {view.kind === "review" && (
           <ReviewFlow
+            key={view.reviewKind}
             journey={journey}
-            plan={view.plan}
-            onSubmitted={(review, updated) => {
+            reviewKind={view.reviewKind}
+            onSubmitted={(plan, review, updated) => {
               upsert(updated);
-              setView({ kind: "reviewResult", plan: view.plan, review });
+              setView({ kind: "reviewResult", plan, review });
             }}
+            onBack={() => setView({ kind: "resume" })}
           />
         )}
 
@@ -380,34 +383,94 @@ function LessonFlow({
   onSubmitted: (
     lesson: Lesson,
     asked: Question[],
-    step: StepRecord,
+    answers: Record<string, string>,
+    outcome: StepOutcome,
     prevPercent: number,
-    updated: LearningJourney,
   ) => void;
 }) {
-  const lesson = getLesson(journey.repoId, conceptId)!;
-  const asked = questionsForStyle(lesson, journey.questionStyle);
+  const [state, setState] = useState<
+    | { phase: "loading" }
+    | { phase: "error"; message: string }
+    | { phase: "ready"; lesson: Lesson; source: ContentSource }
+  >({ phase: "loading" });
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [grading, setGrading] = useState(false);
+  const [gradeError, setGradeError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const { model } = getRepoContent(journey.repoId);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchLesson(journey, conceptId)
+      .then(({ lesson, source }) => {
+        if (!cancelled) setState({ phase: "ready", lesson, source });
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setState({ phase: "error", message: err.message });
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on concept/attempt only
+  }, [conceptId, attempt]);
+
+  if (state.phase === "loading") {
+    return (
+      <LoadingNarration
+        lines={[
+          "Reading your learner model…",
+          "Choosing what to teach next…",
+          "Writing your lesson…",
+        ]}
+      />
+    );
+  }
+
+  if (state.phase === "error") {
+    return (
+      <ErrorPane
+        title="The lesson didn't arrive."
+        message={state.message}
+        onRetry={() => {
+          setState({ phase: "loading" });
+          setAttempt((a) => a + 1);
+        }}
+      />
+    );
+  }
+
+  const { lesson, source } = state;
+  // Style filtering applies to fixture lessons; model lessons already respect it.
+  const asked =
+    source === "fixture"
+      ? questionsForStyle(lesson, journey.questionStyle)
+      : lesson.questions;
 
   const allAnswered = asked.every((q) => (answers[q.id] ?? "").trim().length > 0);
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const { journey: updated, step } = submitLesson(
-      journey,
-      lesson,
-      asked,
-      answers,
-      nowMs(),
-    );
-    onSubmitted(lesson, asked, step, prevPercent, updated);
+    setGrading(true);
+    setGradeError(null);
+    fetchAssess(journey, lesson, asked, answers)
+      .then(({ outcome }) =>
+        onSubmitted(lesson, asked, answers, outcome, prevPercent),
+      )
+      .catch((err: Error) => {
+        setGradeError(err.message);
+        setGrading(false);
+      });
   }
 
   return (
     <article>
       <p className="anim-rise text-[0.72rem] font-medium uppercase tracking-[0.14em] text-moss">
         {lesson.kicker}
+        {source === "fixture" && (
+          <span className="ml-2 normal-case tracking-normal text-ink-faint">
+            · scripted
+          </span>
+        )}
       </p>
       <h1
         className="anim-rise mt-2 font-display text-[2.1rem] leading-tight tracking-tight"
@@ -445,13 +508,84 @@ function LessonFlow({
         </div>
         <button
           type="submit"
-          disabled={!allAnswered}
+          disabled={!allAnswered || grading}
           className="mt-5 rounded-lg bg-moss px-6 py-3 text-[0.88rem] font-semibold text-cream transition-colors hover:bg-moss-deep disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Check my answers
+          {grading ? "Reading your answers…" : "Check my answers"}
         </button>
+        {gradeError && (
+          <p role="alert" className="anim-fadein mt-3 text-[0.8rem] text-rust">
+            Grading failed ({gradeError}) — your answers are still here, try
+            again.
+          </p>
+        )}
       </form>
     </article>
+  );
+}
+
+function LoadingNarration({ lines }: { lines: string[] }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(
+      () => setIndex((i) => Math.min(i + 1, lines.length - 1)),
+      2200,
+    );
+    return () => clearInterval(t);
+  }, [lines.length]);
+
+  return (
+    <div
+      className="flex min-h-[50vh] flex-col items-center justify-center"
+      role="status"
+    >
+      <p className="anim-fadein font-display text-[1.05rem] text-ink-soft" key={index}>
+        {lines[index]}
+      </p>
+      <span className="mt-4 flex gap-1.5">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="h-1.5 w-1.5 animate-pulse rounded-full bg-moss/60"
+            style={{ animationDelay: `${i * 220}ms` }}
+          />
+        ))}
+      </span>
+    </div>
+  );
+}
+
+function ErrorPane({
+  title,
+  message,
+  onRetry,
+}: {
+  title: string;
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="anim-rise mx-auto max-w-md pt-20 text-center">
+      <h1 className="font-display text-[1.5rem] tracking-tight">{title}</h1>
+      <p className="mt-3 text-[0.85rem] leading-relaxed text-ink-soft">
+        {message}
+      </p>
+      <div className="mt-6 flex items-center justify-center gap-3">
+        <button
+          onClick={onRetry}
+          className="rounded-lg bg-moss px-5 py-2.5 text-[0.85rem] font-semibold text-cream transition-colors hover:bg-moss-deep"
+        >
+          Try again
+        </button>
+        <Link
+          href="/"
+          className="rounded-lg border border-line px-5 py-2.5 text-[0.85rem] text-ink-soft transition-colors hover:border-ink-faint"
+        >
+          Back to home
+        </Link>
+      </div>
+    </div>
   );
 }
 
@@ -520,27 +654,18 @@ function FeedbackView({
   );
 }
 
-function EndOfPathView({
-  nextTitle,
-  onReview,
-}: {
-  nextTitle: string | null;
-  onReview: () => void;
-}) {
+function EndOfPathView({ onReview }: { onReview: () => void }) {
   return (
     <div className="anim-rise mx-auto max-w-lg pt-16 text-center">
       <p className="text-[0.72rem] font-medium uppercase tracking-[0.14em] text-moss">
-        End of the fixture path
+        Path complete
       </p>
       <h1 className="mt-3 font-display text-[1.8rem] tracking-tight">
-        {nextTitle
-          ? `Next would be “${nextTitle}”.`
-          : "That's this path, for now."}
+        You&apos;ve covered the curriculum for your goal.
       </h1>
       <p className="mt-4 text-[0.9rem] leading-relaxed text-ink-soft">
-        This prototype scripts two lessons deep. Real lesson generation — where
-        Claude plans each next step from your learner state — arrives in the
-        next build phase. Your progress here is saved.
+        Coverage isn&apos;t the same as mastery — a short review of your
+        weakest concepts is the honest way to close. Your progress is saved.
       </p>
       <div className="mt-8 flex items-center justify-center gap-3">
         <button
@@ -647,14 +772,68 @@ function ResumeView({
 
 function ReviewFlow({
   journey,
-  plan,
+  reviewKind,
   onSubmitted,
+  onBack,
 }: {
   journey: LearningJourney;
-  plan: ReviewPlan;
-  onSubmitted: (review: ReviewRecord, updated: LearningJourney) => void;
+  reviewKind: "last_lesson" | "broad";
+  onSubmitted: (
+    plan: ReviewPlan,
+    review: ReviewRecord,
+    updated: LearningJourney,
+  ) => void;
+  onBack: () => void;
 }) {
+  const [state, setState] = useState<
+    | { phase: "loading" }
+    | { phase: "error"; message: string }
+    | { phase: "ready"; plan: ReviewPlan }
+  >({ phase: "loading" });
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchReviewPlan(journey, reviewKind, lastTaughtConceptId(journey))
+      .then(({ plan }) => {
+        if (!cancelled) setState({ phase: "ready", plan });
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setState({ phase: "error", message: err.message });
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on kind/attempt only
+  }, [reviewKind, attempt]);
+
+  if (state.phase === "loading") {
+    return (
+      <LoadingNarration
+        lines={[
+          "Looking over what you've covered…",
+          "Finding the concepts worth re-testing…",
+          "Writing review questions…",
+        ]}
+      />
+    );
+  }
+
+  if (state.phase === "error") {
+    return (
+      <ErrorPane
+        title="The review didn't arrive."
+        message={state.message}
+        onRetry={() => {
+          setState({ phase: "loading" });
+          setAttempt((a) => a + 1);
+        }}
+      />
+    );
+  }
+
+  const { plan } = state;
   const allAnswered = plan.questions.every(
     (q) => (answers[q.id] ?? "").trim().length > 0,
   );
@@ -667,7 +846,7 @@ function ReviewFlow({
       answers,
       nowMs(),
     );
-    onSubmitted(review, updated);
+    onSubmitted(plan, review, updated);
   }
 
   const title =
@@ -697,13 +876,22 @@ function ReviewFlow({
             />
           ))}
         </div>
-        <button
-          type="submit"
-          disabled={!allAnswered}
-          className="mt-5 rounded-lg bg-moss px-6 py-3 text-[0.88rem] font-semibold text-cream transition-colors hover:bg-moss-deep disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Check my answers
-        </button>
+        <div className="mt-5 flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={!allAnswered}
+            className="rounded-lg bg-moss px-6 py-3 text-[0.88rem] font-semibold text-cream transition-colors hover:bg-moss-deep disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Check my answers
+          </button>
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-lg border border-line px-5 py-3 text-[0.85rem] text-ink-soft transition-colors hover:border-ink-faint"
+          >
+            Back
+          </button>
+        </div>
       </form>
     </article>
   );

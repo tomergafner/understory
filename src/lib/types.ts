@@ -21,6 +21,7 @@ export interface CodeExcerpt {
 export interface Concept {
   id: string;
   title: string;
+  summary: string; // one-liner used in prompts and curriculum context
   level: number; // curriculum level 1-7
   weight: number; // importance for coverage
   goals: Goal[]; // goals whose curriculum includes this concept
@@ -72,6 +73,17 @@ export interface Lesson {
   paragraphs: string[];
   excerpt?: CodeExcerpt;
   questions: Question[];
+}
+
+// The outcome of grading + deciding after a lesson step — produced either by
+// a fixture script (Phase 1) or by the server's Claude call (Phase 3). The
+// engine applies it to the journey deterministically either way.
+export interface StepOutcome {
+  assessment: Assessment;
+  adaptationMessage: string;
+  nextConceptId: string | null;
+  conceptStatus: "understood" | "partial" | "misconception";
+  correct: Record<string, boolean>;
 }
 
 export interface StepRecord {

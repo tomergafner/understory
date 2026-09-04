@@ -45,8 +45,13 @@ Requires the `RAILWAY_TOKEN` secret and `HEALTH_URL` variable on the repo.
 
 ## Environment variables
 
-None required yet. Later phases add `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`,
-`DATABASE_URL` (see CLAUDE.md §18).
+| Variable | Required | Default | Notes |
+|---|---|---|---|
+| `ANTHROPIC_API_KEY` | For live tutoring | — | Without it, the app serves the scripted fixture demo (marked "scripted" in the UI) |
+| `ANTHROPIC_MODEL` | No | `claude-fable-5` | Server-side only |
+| `ANTHROPIC_EFFORT` | No | `medium` | `low` / `medium` / `high` |
+
+`DATABASE_URL` arrives with Phase 4 (see CLAUDE.md §18).
 
 ## Docs
 

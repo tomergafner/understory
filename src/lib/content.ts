@@ -1,13 +1,19 @@
-import type { Lesson, Question, RepositoryModel } from "./types";
+import type { CodeExcerpt, Lesson, Question, RepositoryModel } from "./types";
 import {
   decideAfterLesson1,
   decideAfterLevel4,
+  expressEvidence,
   expressLessons,
   expressModel,
   expressReviewBank,
   type LessonOutcome,
 } from "./fixtures/express";
-import { fastapiLessons, fastapiModel, fastapiReviewBank } from "./fixtures/fastapi";
+import {
+  fastapiEvidence,
+  fastapiLessons,
+  fastapiModel,
+  fastapiReviewBank,
+} from "./fixtures/fastapi";
 
 // Fixture content registry. In Phase 3+ lessons and decisions come from Claude;
 // this registry keeps the UI and engine oblivious to where content originates.
@@ -19,6 +25,7 @@ interface RepoContent {
   lessons: Record<string, Lesson>;
   reviewBank: Record<string, Question[]>;
   decide: Record<string, DecideFn>;
+  evidence: Record<string, CodeExcerpt>;
 }
 
 function fastapiDecide(): DecideFn {
@@ -55,6 +62,13 @@ const registry: Record<string, RepoContent> = {
       "routing-layer": (c) => decideAfterLevel4("routing-layer", c),
       "router-stack": (c) => decideAfterLevel4("router-stack", c),
     },
+    evidence: {
+      ...expressEvidence,
+      // lesson excerpts double as evidence for their concepts
+      "middleware-pipeline": expressLessons["middleware-pipeline"].excerpt!,
+      "routing-layer": expressLessons["routing-layer"].excerpt!,
+      "router-stack": expressLessons["router-stack"].excerpt!,
+    },
   },
   fastapi: {
     model: fastapiModel,
@@ -62,6 +76,10 @@ const registry: Record<string, RepoContent> = {
     reviewBank: fastapiReviewBank,
     decide: {
       "dependency-injection": fastapiDecide(),
+    },
+    evidence: {
+      ...fastapiEvidence,
+      "dependency-injection": fastapiLessons["dependency-injection"].excerpt!,
     },
   },
 };

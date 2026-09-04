@@ -120,6 +120,69 @@ this scale.
 
 ---
 
+## 009 — Fixture fallback behind the same API (2026-09-03)
+
+**Decision:** The three loop routes serve Claude-generated content when
+`ANTHROPIC_API_KEY` is configured and fall back to the Phase 1 scripted engine
+(same response shape, `source: "fixture"`) when it isn't or when a call fails.
+
+**Why:** CI stays deterministic without a key; the demo survives API outages;
+the UI needs one code path. The fallback is honest — the UI tags scripted
+content.
+
+**Alternatives:** Model-only with hard errors; separate fixture UI path.
+
+**Tradeoff:** Fixture depth is limited to scripted concepts; an unscripted
+concept without a key returns a clear 503.
+
+---
+
+## 010 — One model call for grading + next-step decision (2026-09-03)
+
+**Decision:** `/api/assess` grades free-form answers, produces the assessment,
+and decides the next concept in a single structured call.
+
+**Why:** Halves the perceived latency of the loop's slowest moment, and the
+decision sees the grading evidence directly instead of a summary of it.
+
+**Alternatives:** Separate grade and plan calls.
+
+**Tradeoff:** A schema failure loses both outputs at once — mitigated by the
+deterministic fallback.
+
+---
+
+## 011 — Reviews are multiple-choice only (2026-09-03)
+
+**Decision:** Review questions (quick and broad) are MC-only; grading is
+deterministic application code.
+
+**Why:** Reviews are quick retention checks, not essays; deterministic grading
+keeps them instant and keeps `submitReview` client-side and testable.
+
+**Alternatives:** Free-form reviews graded by the model.
+
+**Tradeoff:** Less expressive retention evidence; acceptable — lessons carry
+the free-form load.
+
+---
+
+## 012 — Model default corrected to claude-fable-5 (2026-09-03)
+
+**Decision:** `ANTHROPIC_MODEL` defaults to `claude-fable-5`; CLAUDE.md's
+`claude-fable-5-1` does not exist in the API catalog.
+
+**Why:** The instruction's intent was "newest frontier model"; the env var
+keeps it swappable without code changes. Effort defaults to `medium` for
+interactive latency.
+
+**Alternatives:** `claude-opus-4-8` (cheaper, faster).
+
+**Tradeoff:** Fable costs ~2× Opus per token and thinks longer; per-lesson
+cost is still cents at demo scale.
+
+---
+
 ## 008 — Demo repository: expressjs/express (2026-09-03)
 
 **Decision:** Use expressjs/express as the bundled demo repository.
