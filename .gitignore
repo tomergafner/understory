@@ -43,3 +43,7 @@ next-env.d.ts
 # local artifacts
 .playwright-mcp/
 *.png
+
+# playwright
+test-results/
+playwright-report/
