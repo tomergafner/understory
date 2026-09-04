@@ -1,0 +1,88 @@
+UNDERSTORY — DESIGN RATIONALE
+Adaptive GitHub Repository Tutor
+Live: https://understory.chat · Code: https://github.com/tomergafner/understory
+
+
+WHY THIS THEME AND THIS SPECIFIC APPROACH
+
+I chose Exploration & Understanding because understanding an unfamiliar
+codebase is a problem I face constantly, and existing tools all solve it the
+same wrong way: they optimize the explanation, not the reader. I built the
+tool around how I actually learn best — and how the best teacher I had
+taught: read a small chunk, ask yourself questions about it, and answer them
+before moving on. I already use chat LLMs this way by hand, instructing them
+to feed me small pieces and test me before advancing. Understory turns that
+personal workflow into a product: one small concept at a time, grounded in
+the repository's real code, at most three questions per step, and a
+curriculum that reshapes itself around what my answers reveal I actually
+understand.
+
+
+WHAT MAKES THE IDEA INTERESTING OR NON-OBVIOUS
+
+Static repo explainers optimize for the repository. Understory optimizes for
+the relationship between the repository and the learner. It maintains two
+evolving state models — a RepositoryModel (what must be understood) and a
+LearnerState (what this person currently understands) — and every next
+lesson is a decision that closes the gap between them. The curriculum is not
+pre-generated: it is planned one step at a time from assessment evidence,
+which is exactly what a plain chat cannot sustain (transcripts drift; explicit
+state is durable, compact, and auditable). Assessment is not a quiz feature —
+it is the sensor that makes adaptation possible, and the adaptation is made
+visible: after a wrong answer about middleware ordering, the app tells you
+what your answer revealed and reroutes you through the exact mechanism you
+misunderstood. Learning is also longitudinal: you can leave, return days
+later, and review your weakest concepts instead of restarting.
+
+
+KEY DESIGN DECISIONS AND TRADEOFFS
+
+- Two-stage repository analysis. A README-based starter curriculum arrives in
+  ~20 seconds so learning begins immediately; a deep agentic pass (Claude
+  reading the code itself via web_fetch, seeded with the starter's concept
+  ids) upgrades the curriculum in place in the background. Tradeoff: early
+  lessons lack code evidence until the deep pass lands.
+- Deterministic guardrails wherever the model touches state. Multiple-choice
+  grading, learner-state transitions, coverage math, and next-concept
+  validation are application code; Claude handles what needs semantic
+  judgment (lesson writing, free-form grading, pedagogy decisions). Every
+  model output is schema-validated before it becomes state.
+- Analysis is learned once per repo+commit and shared across learners; each
+  lesson call sends only the compact model and one relevant excerpt — never
+  the repository or the chat history.
+- Progress means coverage, not mastery. The percentage is goal-scoped
+  curriculum traversal; mastery is tracked separately per concept and drives
+  review and remediation. The number stays honest ("42% covered", never
+  "42% expert"), at the cost of a coarser signal.
+- Graceful degradation everywhere: no API key → scripted fixture demo; no
+  database → localStorage; deep analysis fails → learning continues on the
+  starter. The demo cannot be killed by a single dependency.
+- Scope discipline: no auth (durable anonymous cookie identity), no Redis, no
+  job queue, no embeddings — each was considered and cut as invisible to the
+  evaluator at this scale.
+
+
+HOW I WOULD EXTEND THIS WITH MORE TIME
+
+- Contribution readiness as a concrete terminal objective: real code
+  locations with a small section removed or a realistic issue — the learner
+  proposes the change, and the tutor evaluates correctness, conventions, and
+  side effects.
+- Spaced repetition scheduled from the per-concept mastery and staleness data
+  the system already records.
+- Agentic read-only repository tools during tutoring (not just analysis), so
+  deep lessons can pull fresh evidence on demand.
+- Streaming lesson generation for lower perceived latency; a background
+  worker for analysis jobs so deploys never interrupt them.
+- Private repositories via GitHub OAuth; team onboarding curricula sharing
+  one repository analysis across an organization's learners.
+
+
+APPROXIMATELY HOW LONG I SPENT
+
+Roughly [FILL IN] hours across two days: planning and product definition
+first, then a fixture-driven UX prototype, deployment with CI, the real
+adaptive loop, persistence, live repository analysis, and a hardening pass
+driven by an automated multi-agent audit of the demo path. AI tooling
+(Claude Code) was used throughout — directed by explicit phase gates, a
+decision log, and manual testing between phases.
