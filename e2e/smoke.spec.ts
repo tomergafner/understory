@@ -63,6 +63,32 @@ test("wrong answer visibly adapts the path and moves coverage", async ({
   ).toBeVisible();
 });
 
+test.describe("iPhone viewport", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("sidebar is an off-canvas drawer with a working toggle", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    // Content is full-width; the drawer toggle floats top-left.
+    const toggle = page.getByRole("button", { name: "Open navigation" });
+    await expect(toggle).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "Recent journeys" }),
+    ).not.toBeInViewport();
+
+    await toggle.click();
+    await expect(
+      page.getByRole("navigation", { name: "Recent journeys" }),
+    ).toBeInViewport();
+
+    await page.getByRole("button", { name: "Close navigation" }).click();
+    await expect(
+      page.getByRole("navigation", { name: "Recent journeys" }),
+    ).not.toBeInViewport();
+  });
+});
+
 test("leaving and returning resumes from persisted state", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /try the demo/i }).click();

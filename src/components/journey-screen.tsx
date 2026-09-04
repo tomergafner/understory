@@ -180,7 +180,7 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
     <div className="min-h-screen">
       {view.kind !== "analysis" && (
         <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur-sm">
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-8 py-3">
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3 pl-16 pr-4 md:px-8">
             <div className="flex items-baseline gap-2.5">
               <span className="font-code text-[0.78rem] font-medium text-ink">
                 {journey.repoDisplayName}
@@ -205,7 +205,7 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
         </header>
       )}
 
-      <div className="mx-auto max-w-3xl px-8 py-10">
+      <div className="mx-auto max-w-3xl px-5 py-8 md:px-8 md:py-10">
         {view.kind === "analysis" && (
           <AnalysisView
             live={!!journey.model}

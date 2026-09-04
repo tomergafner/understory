@@ -61,7 +61,7 @@ export function ProgressLine({
   pendingNote?: string | null;
 }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
       <span className="whitespace-nowrap text-[0.72rem] text-ink-faint">
         {goalLabel}
       </span>

@@ -86,10 +86,10 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-8 py-16">
+    <div className="flex min-h-screen items-center justify-center px-5 py-16 md:px-8">
       <div className="w-full max-w-xl">
         <h1
-          className="anim-rise font-display text-[2.6rem] leading-[1.15] tracking-tight"
+          className="anim-rise font-display text-[2rem] leading-[1.15] tracking-tight md:text-[2.6rem]"
           style={{ fontVariationSettings: '"SOFT" 40' }}
         >
           Learn a codebase the way a great teacher would teach it.

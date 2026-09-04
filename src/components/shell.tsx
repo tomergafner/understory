@@ -2,16 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { computeCoverage } from "@/lib/coverage";
 import { modelForJourney } from "@/lib/content";
 import { sortByLastActive } from "@/lib/store";
 import { timeAgo } from "@/lib/time";
 import { JourneysProvider, useJourneysCtx } from "./journeys-context";
 
-function Wordmark() {
+function Wordmark({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <Link
       href="/"
+      onClick={onNavigate}
       className="group flex items-baseline gap-2 px-1 outline-offset-4"
     >
       <span
@@ -25,7 +27,7 @@ function Wordmark() {
   );
 }
 
-function SidebarJourneys() {
+function SidebarJourneys({ onNavigate }: { onNavigate?: () => void }) {
   const { journeys, ready, now } = useJourneysCtx();
   const pathname = usePathname();
 
@@ -48,6 +50,7 @@ function SidebarJourneys() {
             <li key={j.id}>
               <Link
                 href={href}
+                onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
                 className={`group relative flex flex-col gap-0.5 rounded-md px-3 py-2 transition-colors ${
                   active
@@ -84,23 +87,71 @@ function SidebarJourneys() {
 }
 
 export function Shell({ children }: { children: React.ReactNode }) {
+  // Mobile: the sidebar is an off-canvas drawer; desktop (md+) keeps it fixed.
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
   return (
     <JourneysProvider>
       <div className="flex min-h-screen">
-        <aside className="fixed inset-y-0 left-0 z-10 flex w-60 flex-col bg-pine px-3 py-5">
-          <Wordmark />
+        {/* Mobile-only sidebar toggle */}
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-label={open ? "Close navigation" : "Open navigation"}
+          aria-expanded={open}
+          className="fixed left-3 top-3 z-40 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-paper/95 text-ink shadow-sm md:hidden"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+            {open ? (
+              <path
+                d="M3 3l10 10M13 3L3 13"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            ) : (
+              <path
+                d="M2 4h12M2 8h12M2 12h12"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            )}
+          </svg>
+        </button>
+
+        {/* Backdrop when the drawer is open on mobile */}
+        {open && (
+          <div
+            className="fixed inset-0 z-20 bg-ink/40 md:hidden"
+            onClick={close}
+            aria-hidden="true"
+          />
+        )}
+
+        <aside
+          className={`fixed inset-y-0 left-0 z-30 flex w-60 transform flex-col bg-pine px-3 py-5 transition-transform duration-200 ease-out md:translate-x-0 ${
+            open ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <div className="pl-11 md:pl-0">
+            <Wordmark onNavigate={close} />
+          </div>
           <Link
             href="/"
+            onClick={close}
             className="mt-6 rounded-md border border-pine-line px-3 py-2 text-[0.8rem] font-medium text-cream-dim transition-colors hover:border-moss hover:text-cream"
           >
             + New repository
           </Link>
-          <SidebarJourneys />
+          <SidebarJourneys onNavigate={close} />
           <p className="px-3 pt-3 text-[0.65rem] leading-relaxed text-cream-dim/50">
             An adaptive tutor for unfamiliar codebases.
           </p>
         </aside>
-        <main className="ml-60 min-h-screen flex-1">{children}</main>
+
+        <main className="min-h-screen w-full flex-1 md:ml-60">{children}</main>
       </div>
     </JourneysProvider>
   );
