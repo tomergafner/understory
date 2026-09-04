@@ -8,7 +8,8 @@ understand.
 
 Built for the Anthropic SWE take-home (Theme 1: Exploration & Understanding).
 
-**Live**: https://understory-production-e6f9.up.railway.app — click "Try the demo".
+**Live**: https://understory.chat — click "Try the demo".
+(Direct Railway URL: https://understory-production-e6f9.up.railway.app)
 
 ## Current state
 
