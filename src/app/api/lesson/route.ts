@@ -7,7 +7,7 @@ import {
   GeneratedLessonSchema,
   LessonRequestSchema,
 } from "@/lib/server/schemas";
-import type { LearnerState, Lesson, Question } from "@/lib/types";
+import type { LearnerState, Lesson, Question, RepositoryModel } from "@/lib/types";
 
 export async function POST(req: Request) {
   const parsed = LessonRequestSchema.safeParse(
@@ -22,7 +22,17 @@ export async function POST(req: Request) {
   try {
     content = await resolveContent(body.repoId);
   } catch {
-    return Response.json({ error: "unknown_repo" }, { status: 404 });
+    // Partial-analysis phase: no stored analysis yet, but the journey carries
+    // its starter model (no evidence until the deep pass lands).
+    if (body.model) {
+      content = {
+        model: body.model as RepositoryModel,
+        evidence: {},
+        isFixture: false,
+      };
+    } else {
+      return Response.json({ error: "unknown_repo" }, { status: 404 });
+    }
   }
 
   const fixture = () => {

@@ -6,7 +6,7 @@ import { resolveContent } from "@/lib/server/content-resolver";
 import { callModel } from "@/lib/server/model-call";
 import { buildAssessPrompt } from "@/lib/server/prompts";
 import { AssessRequestSchema, StepDecisionSchema } from "@/lib/server/schemas";
-import type { LearnerState, Question, StepOutcome } from "@/lib/types";
+import type { LearnerState, Question, RepositoryModel, StepOutcome } from "@/lib/types";
 
 export async function POST(req: Request) {
   const parsed = AssessRequestSchema.safeParse(
@@ -21,7 +21,17 @@ export async function POST(req: Request) {
   try {
     content = await resolveContent(body.repoId);
   } catch {
-    return Response.json({ error: "unknown_repo" }, { status: 404 });
+    // Partial-analysis phase: no stored analysis yet, but the journey carries
+    // its starter model (no evidence until the deep pass lands).
+    if (body.model) {
+      content = {
+        model: body.model as RepositoryModel,
+        evidence: {},
+        isFixture: false,
+      };
+    } else {
+      return Response.json({ error: "unknown_repo" }, { status: 404 });
+    }
   }
 
   const questions = body.questions as Question[];

@@ -106,6 +106,28 @@ export function modelForJourney(journey: {
   return journey.model ?? getRepoContent(journey.repoId).model;
 }
 
+// Upgrade a partial (starter) journey to the deep analysis: deep concepts win;
+// starter concepts the learner already touched are kept so history stays
+// coherent even if the deep pass dropped them.
+export function mergeDeepModel(
+  journey: { model?: RepositoryModel; learner: { conceptStatus: Record<string, string> } },
+  deep: RepositoryModel,
+): RepositoryModel {
+  const starter = journey.model;
+  if (!starter) return { ...deep, partial: undefined };
+  const deepIds = new Set(deep.concepts.map((c) => c.id));
+  const touchedMissing = starter.concepts.filter(
+    (c) =>
+      (journey.learner.conceptStatus[c.id] ?? "untaught") !== "untaught" &&
+      !deepIds.has(c.id),
+  );
+  return {
+    ...deep,
+    concepts: [...deep.concepts, ...touchedMissing],
+    partial: undefined,
+  };
+}
+
 export function conceptTitleIn(
   model: RepositoryModel,
   conceptId: string,

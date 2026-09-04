@@ -3,6 +3,7 @@ import type {
   LearningJourney,
   Lesson,
   Question,
+  RepositoryModel,
   StepOutcome,
 } from "./types";
 
@@ -39,6 +40,7 @@ export function fetchLesson(
     questionStyle: journey.questionStyle,
     learner: journey.learner,
     recentAdaptation: journey.learner.recommendedNext?.reason ?? null,
+    ...(journey.model ? { model: journey.model } : {}),
   });
 }
 
@@ -57,6 +59,7 @@ export function fetchAssess(
     questions: asked,
     answers,
     learner: journey.learner,
+    ...(journey.model ? { model: journey.model } : {}),
   });
 }
 
@@ -71,5 +74,14 @@ export function fetchReviewPlan(
     kind,
     learner: journey.learner,
     lastConceptId,
+    ...(journey.model ? { model: journey.model } : {}),
   });
+}
+
+export function fetchAnalysis(url: string): Promise<{
+  status: "partial" | "done";
+  model: RepositoryModel;
+  deepFailed?: boolean;
+}> {
+  return post("/api/analyze", { url });
 }

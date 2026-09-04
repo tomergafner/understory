@@ -1,14 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  fetchAnalysis,
   fetchAssess,
   fetchLesson,
   fetchReviewPlan,
   type ContentSource,
 } from "@/lib/client-api";
-import { getConceptTitle, modelForJourney } from "@/lib/content";
+import {
+  getConceptTitle,
+  mergeDeepModel,
+  modelForJourney,
+} from "@/lib/content";
 import { computeCoverage } from "@/lib/coverage";
 import {
   applyStepOutcome,
@@ -90,6 +95,32 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
     return computeCoverage(model, journey.goal, journey.learner);
   }, [journey]);
 
+  // Deep-analysis upgrade: while the journey runs on the starter curriculum,
+  // poll until the background pass lands, then merge the models in place.
+  const journeyRef = useRef(journey);
+  useEffect(() => {
+    journeyRef.current = journey;
+  }, [journey]);
+  const partialUrl = journey?.model?.partial ? journey.model.repoUrl : null;
+  useEffect(() => {
+    if (!partialUrl) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await fetchAnalysis(partialUrl);
+        const current = journeyRef.current;
+        if (data.status === "done" && current?.model?.partial) {
+          upsert({ ...current, model: mergeDeepModel(current, data.model) });
+          clearInterval(interval);
+        } else if (data.status === "partial" && data.deepFailed) {
+          clearInterval(interval); // keep learning on the starter curriculum
+        }
+      } catch {
+        // transient; keep polling
+      }
+    }, 10_000);
+    return () => clearInterval(interval);
+  }, [partialUrl, upsert]);
+
   if (!ready || view.kind === "boot") {
     return <div className="min-h-screen" />;
   }
@@ -136,6 +167,9 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
               percent={coverage.percent}
               goalLabel={journey.goalLabel}
               grewNote={grewNote}
+              pendingNote={
+                journey.model?.partial ? "deep analysis running…" : null
+              }
             />
           </div>
         </header>

@@ -142,6 +142,9 @@ export const LessonRequestSchema = z.object({
   questionStyle: z.enum(["mc", "free", "mixed"]),
   learner: LearnerSchema,
   recentAdaptation: z.string().nullable().optional(),
+  // Live journeys carry their model (needed during the partial-analysis phase
+  // when no stored analysis exists yet).
+  model: z.unknown().optional(),
 });
 
 export const AssessRequestSchema = z.object({
@@ -165,6 +168,7 @@ export const AssessRequestSchema = z.object({
   ),
   answers: z.record(z.string(), z.string()),
   learner: LearnerSchema,
+  model: z.unknown().optional(),
 });
 
 export const ReviewRequestSchema = z.object({
@@ -173,4 +177,5 @@ export const ReviewRequestSchema = z.object({
   kind: z.enum(["last_lesson", "broad"]),
   learner: LearnerSchema,
   lastConceptId: z.string().nullable(),
+  model: z.unknown().optional(),
 });

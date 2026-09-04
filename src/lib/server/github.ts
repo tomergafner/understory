@@ -198,6 +198,26 @@ export async function resolveRepoHead(urlInput: string): Promise<RepoHead> {
   };
 }
 
+// README for the fast stage-1 starter analysis (metadata + README only).
+export async function fetchReadme(
+  owner: string,
+  repo: string,
+  ref: string,
+): Promise<string | null> {
+  try {
+    const file = (await gh(`/repos/${owner}/${repo}/readme?ref=${ref}`)) as {
+      content?: string;
+      encoding?: string;
+    };
+    if (file.encoding !== "base64" || !file.content) return null;
+    return Buffer.from(file.content, "base64")
+      .toString("utf-8")
+      .slice(0, 30_000);
+  } catch {
+    return null;
+  }
+}
+
 // ---- Snapshot (Stage A of CLAUDE.md §5) ----
 
 export interface RepoSnapshot {

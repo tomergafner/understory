@@ -49,22 +49,19 @@ export async function POST(req: Request) {
   }
 
   const state = await getOrStartAnalysis(head);
-  if (state.status === "done") {
-    return Response.json({
-      status: "done",
-      repoId: head.repoId,
-      commitSha: head.commitSha,
-      model: state.model,
-    });
-  }
   if (state.status === "failed") {
     return Response.json(
       { status: "failed", error: "analysis_failed", message: state.message },
       { status: 502 },
     );
   }
-  return Response.json(
-    { status: "analyzing", repoId: head.repoId, commitSha: head.commitSha },
-    { status: 202 },
-  );
+  // "partial": the starter curriculum — learning begins now while the deep
+  // pass runs in the background. "done": the deep curriculum.
+  return Response.json({
+    status: state.status,
+    repoId: head.repoId,
+    commitSha: head.commitSha,
+    model: state.model,
+    deepFailed: state.status === "partial" ? (state.deepFailed ?? false) : false,
+  });
 }

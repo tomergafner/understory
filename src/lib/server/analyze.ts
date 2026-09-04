@@ -1,5 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { getClient, getEffort, getModel, logUsage } from "./anthropic";
+import { callModel } from "./model-call";
 import { GeneratedRepoModelSchema, type GeneratedRepoModel } from "./schemas";
 
 // Agentic repository analysis (docs/DECISIONS.md 014): the request carries the
@@ -94,17 +95,71 @@ Curriculum rules:
 
 When you have read enough, call ${SUBMIT_TOOL_NAME} exactly once with the full analysis.`;
 
-export async function analyzeAgentically(args: {
+// Stage 1: fast starter curriculum from metadata + README only. No code has
+// been read, so evidence is always null and the model must stay honest.
+const QUICK_SYSTEM = `You are the repository analyst for Understory, an adaptive tutor that teaches unfamiliar codebases one small tested concept at a time.
+
+Produce a STARTER curriculum from only the repository metadata and README below — a deeper analysis that reads the code is already running and will refine your work.
+
+Rules:
+- 6-8 concepts in teaching order, mostly levels 1-3 (what is this, basic usage, configuration); include level 4 only if the README genuinely reveals architecture.
+- ids kebab-case and unique; prerequisites reference your listed ids only.
+- summary: one concrete sentence; you have read NO code, so mark inferences with "likely".
+- goals: which learner goals (understand/use/architecture/contribute) each concept serves.
+- weight: integer 1-5.
+- evidence: always null — you have not read any source files.
+- description: one crisp sentence, no marketing language.`;
+
+export async function quickAnalyze(args: {
   owner: string;
   repo: string;
   commitSha: string;
+  description: string;
+  primaryLanguage: string | null;
+  readme: string | null;
 }): Promise<GeneratedRepoModel> {
+  const prompt = [
+    `Repository: ${args.owner}/${args.repo} @ ${args.commitSha.slice(0, 7)}
+GitHub description: ${args.description || "(none)"}
+Primary language: ${args.primaryLanguage ?? "unknown"}`,
+    args.readme ? `README:\n\n${args.readme}` : "No README was found.",
+    "Produce the starter curriculum now.",
+  ].join("\n\n");
+
+  return callModel("analyze-quick", prompt, GeneratedRepoModelSchema, {
+    maxTokens: 6000,
+    effort: "low",
+    systemText: QUICK_SYSTEM,
+  });
+}
+
+export interface StarterConcept {
+  id: string;
+  title: string;
+  summary: string;
+}
+
+export async function analyzeAgentically(
+  args: {
+    owner: string;
+    repo: string;
+    commitSha: string;
+  },
+  starter?: StarterConcept[],
+): Promise<GeneratedRepoModel> {
   const startedAt = Date.now();
+
+  const starterBlock =
+    starter && starter.length > 0
+      ? `\n\nA starter curriculum is already live for this learner. Where your deeper reading agrees, KEEP THESE IDS (you may freely refine titles, summaries, levels, weights, and add concepts around them); drop a concept only if your reading contradicts it:\n${starter
+          .map((s) => `- ${s.id}: ${s.title} — ${s.summary}`)
+          .join("\n")}`
+      : "";
 
   const messages: Anthropic.MessageParam[] = [
     {
       role: "user",
-      content: `Analyze https://github.com/${args.owner}/${args.repo} at commit ${args.commitSha}. Read what you need, then submit the curriculum.`,
+      content: `Analyze https://github.com/${args.owner}/${args.repo} at commit ${args.commitSha}. Read what you need, then submit the curriculum.${starterBlock}`,
     },
   ];
 
@@ -172,7 +227,13 @@ export function toRepositoryModelParts(
     repo: string;
     commitSha: string;
   },
-) {
+): {
+  model: import("../types").RepositoryModel;
+  evidence: Record<
+    string,
+    { path: string; startLine: number; endLine: number; code: string }
+  >;
+} {
   const seen = new Set<string>();
   const concepts = gen.concepts.filter((c) => {
     if (seen.has(c.id)) return false;

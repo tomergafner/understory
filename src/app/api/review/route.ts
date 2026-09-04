@@ -4,7 +4,7 @@ import { resolveContent } from "@/lib/server/content-resolver";
 import { callModel } from "@/lib/server/model-call";
 import { buildReviewPrompt } from "@/lib/server/prompts";
 import { ReviewPlanSchema, ReviewRequestSchema } from "@/lib/server/schemas";
-import type { LearnerState, Question } from "@/lib/types";
+import type { LearnerState, Question, RepositoryModel } from "@/lib/types";
 
 export async function POST(req: Request) {
   const parsed = ReviewRequestSchema.safeParse(
@@ -19,7 +19,17 @@ export async function POST(req: Request) {
   try {
     content = await resolveContent(body.repoId);
   } catch {
-    return Response.json({ error: "unknown_repo" }, { status: 404 });
+    // Partial-analysis phase: no stored analysis yet, but the journey carries
+    // its starter model (no evidence until the deep pass lands).
+    if (body.model) {
+      content = {
+        model: body.model as RepositoryModel,
+        evidence: {},
+        isFixture: false,
+      };
+    } else {
+      return Response.json({ error: "unknown_repo" }, { status: 404 });
+    }
   }
 
   const learner = body.learner as LearnerState;

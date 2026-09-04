@@ -53,10 +53,12 @@ export function ProgressLine({
   percent,
   goalLabel,
   grewNote,
+  pendingNote,
 }: {
   percent: number;
   goalLabel: string;
   grewNote?: string | null;
+  pendingNote?: string | null;
 }) {
   return (
     <div className="flex items-center gap-3">
@@ -82,6 +84,11 @@ export function ProgressLine({
       {grewNote && (
         <span className="whitespace-nowrap text-[0.68rem] text-amber">
           {grewNote}
+        </span>
+      )}
+      {pendingNote && (
+        <span className="animate-pulse whitespace-nowrap text-[0.68rem] text-ink-faint">
+          {pendingNote}
         </span>
       )}
     </div>

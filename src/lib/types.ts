@@ -37,6 +37,8 @@ export interface RepositoryModel {
   description: string;
   languages: string[];
   concepts: Concept[];
+  // Stage-1 starter analysis (README-only); a deep pass is running behind it.
+  partial?: boolean;
 }
 
 export interface McOption {

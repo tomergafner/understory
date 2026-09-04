@@ -55,47 +55,30 @@ export default function Home() {
     setAnalyzing(true);
     setNotice(null);
     try {
-      // Async job protocol: the POST starts the analysis; we re-POST to poll
-      // until it's done (analysis can take a few minutes).
-      const deadline = Date.now() + 8 * 60_000;
-      for (;;) {
-        const res = await fetch("/api/analyze", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url }),
-        });
-        const data = (await res.json()) as {
-          status?: string;
-          model?: RepositoryModel;
-          message?: string;
-        };
-        if (res.ok && data.status === "done" && data.model) {
-          const fresh = newLiveJourney(
-            data.model,
-            style as QuestionStyle,
-            nowMs(),
-          );
-          // Returning to an already-studied repo resumes it instead of restarting.
-          const existing = journeys.find((j) => j.repoId === fresh.repoId);
-          const journey = existing ?? fresh;
-          if (!existing) upsert(journey);
-          router.push(`/j/${journey.id}`);
-          return;
-        }
-        if (res.status !== 202) {
-          setNotice(
-            data.message ?? "The analysis didn't complete — please try again.",
-          );
-          return;
-        }
-        if (Date.now() > deadline) {
-          setNotice(
-            "The analysis is taking unusually long. It may still finish — try the same URL again in a minute.",
-          );
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+      // Stage 1 returns a starter curriculum in ~20 seconds; the deep
+      // analysis keeps running in the background while learning begins.
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = (await res.json()) as {
+        status?: string;
+        model?: RepositoryModel;
+        message?: string;
+      };
+      if (!res.ok || !data.model) {
+        setNotice(
+          data.message ?? "The analysis didn't complete — please try again.",
+        );
+        return;
       }
+      const fresh = newLiveJourney(data.model, style as QuestionStyle, nowMs());
+      // Returning to an already-studied repo resumes it instead of restarting.
+      const existing = journeys.find((j) => j.repoId === fresh.repoId);
+      const journey = existing ?? fresh;
+      if (!existing) upsert(journey);
+      router.push(`/j/${journey.id}`);
     } catch {
       setNotice("Something went wrong reaching the analyzer — please try again.");
     } finally {
@@ -163,9 +146,9 @@ export default function Home() {
               role="status"
               className="anim-fadein mt-4 text-[0.82rem] leading-relaxed text-ink-soft"
             >
-              Claude is reading the repository right now — choosing files,
-              following the architecture, building your curriculum. This
-              typically takes one to three minutes.
+              Getting a first read of the repository — your learning path
+              starts in about twenty seconds, and a deeper analysis keeps
+              working in the background while you learn.
             </p>
           )}
 

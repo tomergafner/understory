@@ -10,7 +10,11 @@ export async function callModel<T extends z.ZodType>(
   route: string,
   prompt: string,
   schema: T,
-  opts?: { maxTokens?: number },
+  opts?: {
+    maxTokens?: number;
+    effort?: "low" | "medium" | "high";
+    systemText?: string;
+  },
 ): Promise<z.infer<T>> {
   const startedAt = Date.now();
   const response = await getClient().messages.parse({
@@ -19,13 +23,13 @@ export async function callModel<T extends z.ZodType>(
     system: [
       {
         type: "text",
-        text: TUTOR_SYSTEM,
+        text: opts?.systemText ?? TUTOR_SYSTEM,
         cache_control: { type: "ephemeral" },
       },
     ],
     messages: [{ role: "user", content: prompt }],
     output_config: {
-      effort: getEffort(),
+      effort: opts?.effort ?? getEffort(),
       format: zodOutputFormat(schema),
     },
   });
