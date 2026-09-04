@@ -1,8 +1,14 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { seedFastapiJourney } from "../engine";
 import type { LearningJourney } from "../types";
 import { getDb } from "./db";
-import { journeys, reviews, steps, users } from "./db/schema";
+import {
+  analyses as analysesTable,
+  journeys,
+  reviews,
+  steps,
+  users,
+} from "./db/schema";
 import { assembleJourney, journeyToRow } from "./journey-mapping";
 
 // Journey persistence. Steps and reviews are append-only evidence — inserts
@@ -40,13 +46,30 @@ export async function listJourneys(userId: string): Promise<LearningJourney[]> {
       .orderBy(asc(reviews.seq)),
   ]);
 
-  return journeyRows.map((row) =>
+  const assembled = journeyRows.map((row) =>
     assembleJourney(
       row,
       stepRows.filter((s) => s.journeyId === row.id).map((s) => s.payload),
       reviewRows.filter((r) => r.journeyId === row.id).map((r) => r.payload),
     ),
   );
+
+  // Heal live-repo journeys saved without their model (or rows predating the
+  // model-persistence fix) from the shared analyses table.
+  for (const journey of assembled) {
+    if (!journey.model && journey.repoId.startsWith("gh:")) {
+      const rows = await db
+        .select({ model: analysesTable.model })
+        .from(analysesTable)
+        .where(eq(analysesTable.repoId, journey.repoId))
+        .orderBy(desc(analysesTable.createdAt))
+        .limit(1);
+      if (rows.length > 0) {
+        journey.model = rows[0].model as LearningJourney["model"];
+      }
+    }
+  }
+  return assembled;
 }
 
 export async function upsertJourney(
@@ -75,14 +98,22 @@ export async function upsertJourney(
 
   await db
     .insert(journeys)
-    .values({ userId, ...row, learner: row.learner as object })
+    .values({
+      userId,
+      ...row,
+      learner: row.learner as object,
+      model: row.model as object | null,
+    })
     .onConflictDoUpdate({
       target: [journeys.userId, journeys.id],
       set: {
+        goal: row.goal,
+        goalLabel: row.goalLabel,
         questionStyle: row.questionStyle,
         createdAt: row.createdAt,
         lastActiveAt: row.lastActiveAt,
         learner: row.learner as object,
+        model: row.model as object | null,
       },
     });
 

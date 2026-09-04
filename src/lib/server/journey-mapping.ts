@@ -20,6 +20,7 @@ export interface JourneyRow {
   createdAt: number;
   lastActiveAt: number;
   learner: unknown;
+  model: unknown; // RepositoryModel for live repos; null for fixtures
 }
 
 export function journeyToRow(journey: LearningJourney): JourneyRow {
@@ -33,6 +34,7 @@ export function journeyToRow(journey: LearningJourney): JourneyRow {
     createdAt: journey.createdAt,
     lastActiveAt: journey.lastActiveAt,
     learner: journey.learner,
+    model: journey.model ?? null,
   };
 }
 
@@ -53,5 +55,6 @@ export function assembleJourney(
     learner: row.learner as LearnerState,
     steps: stepPayloads as StepRecord[],
     reviews: reviewPayloads as ReviewRecord[],
+    ...(row.model ? { model: row.model as LearningJourney["model"] } : {}),
   };
 }

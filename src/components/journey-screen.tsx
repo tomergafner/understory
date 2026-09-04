@@ -81,7 +81,7 @@ function defaultView(ready: boolean, journey: LearningJourney | undefined): View
 }
 
 export function JourneyScreen({ journeyId }: { journeyId: string }) {
-  const { journeys, ready, now, upsert, remove } = useJourneysCtx();
+  const { journeys, ready, now, upsert } = useJourneysCtx();
   const journey = journeys.find((j) => j.id === journeyId);
   const [override, setOverride] = useState<View | null>(null);
 
@@ -177,7 +177,10 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
 
       <div className="mx-auto max-w-3xl px-8 py-10">
         {view.kind === "analysis" && (
-          <AnalysisView onDone={() => setView({ kind: "onboard" })} />
+          <AnalysisView
+            live={!!journey.model}
+            onDone={() => setView({ kind: "onboard" })}
+          />
         )}
 
         {view.kind === "onboard" && (
@@ -261,7 +264,9 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
             onRestart={
               journey.id === "demo-express"
                 ? () => {
-                    remove(journey.id);
+                    // No DELETE here: the fire-and-forget DELETE and PUT could
+                    // land out of order. The upsert's fresh createdAt makes the
+                    // server wipe the old evidence atomically.
                     upsert(newDemoJourney(nowMs()));
                     setView({ kind: "analysis" });
                   }
@@ -300,7 +305,13 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
   );
 }
 
-function AnalysisView({ onDone }: { onDone: () => void }) {
+function AnalysisView({
+  live,
+  onDone,
+}: {
+  live: boolean;
+  onDone: () => void;
+}) {
   const [stage, setStage] = useState(0);
 
   useEffect(() => {
@@ -327,7 +338,9 @@ function AnalysisView({ onDone }: { onDone: () => void }) {
         ))}
       </div>
       <p className="mt-8 text-[0.72rem] uppercase tracking-[0.14em] text-ink-faint">
-        Demo uses a bundled analysis — no waiting
+        {live
+          ? "Starter curriculum ready — a deeper analysis continues while you learn"
+          : "Demo uses a bundled analysis — no waiting"}
       </p>
     </div>
   );
@@ -349,6 +362,15 @@ function OnboardView({
 }) {
   const [style, setStyle] = useState<QuestionStyle>(journey.questionStyle);
   const [goal, setGoal] = useState<Goal>(journey.goal);
+  // Goals with no in-scope concepts yet (thin starter curricula) are shown
+  // disabled; the deep analysis usually unlocks them.
+  const model = modelForJourney(journey);
+  const goalCounts = Object.fromEntries(
+    GOALS.map((g) => [
+      g.id,
+      model.concepts.filter((c) => c.goals.includes(g.id)).length,
+    ]),
+  ) as Record<Goal, number>;
 
   return (
     <div className="anim-rise mx-auto max-w-lg pt-10">
@@ -366,23 +388,32 @@ function OnboardView({
         <div className="mt-3 flex flex-col gap-2">
           {GOALS.map((g) => {
             const selected = g.id === goal;
+            const empty = goalCounts[g.id] === 0;
             return (
               <label
                 key={g.id}
-                className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 text-[0.88rem] ${
+                className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-[0.88rem] ${
                   selected
                     ? "border-moss bg-moss/10 font-medium text-moss-deep"
-                    : "border-line text-ink-soft hover:border-ink-faint"
+                    : empty
+                      ? "cursor-not-allowed border-line text-ink-faint/60"
+                      : "cursor-pointer border-line text-ink-soft hover:border-ink-faint"
                 }`}
               >
                 <input
                   type="radio"
                   name="goal"
                   checked={selected}
+                  disabled={empty}
                   onChange={() => setGoal(g.id)}
                   className="accent-[#3e7c4f]"
                 />
                 {g.label}
+                {empty && (
+                  <span className="ml-auto text-[0.68rem] text-ink-faint">
+                    unlocks with deep analysis
+                  </span>
+                )}
               </label>
             );
           })}

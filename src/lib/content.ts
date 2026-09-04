@@ -99,11 +99,25 @@ export function getLesson(repoId: string, conceptId: string): Lesson | null {
 }
 
 // Live journeys carry their model; fixture journeys resolve it from code.
+// A live journey that somehow lost its model degrades to an empty placeholder
+// rather than crashing the shell (the server heals such rows on next load).
 export function modelForJourney(journey: {
   repoId: string;
+  repoDisplayName?: string;
   model?: RepositoryModel;
 }): RepositoryModel {
-  return journey.model ?? getRepoContent(journey.repoId).model;
+  if (journey.model) return journey.model;
+  if (hasFixture(journey.repoId)) return getRepoContent(journey.repoId).model;
+  return {
+    id: journey.repoId,
+    repoUrl: "",
+    owner: "",
+    name: journey.repoDisplayName ?? journey.repoId,
+    commitLabel: "",
+    description: "",
+    languages: [],
+    concepts: [],
+  };
 }
 
 // Upgrade a partial (starter) journey to the deep analysis: deep concepts win;

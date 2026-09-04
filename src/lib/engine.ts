@@ -133,7 +133,13 @@ export function nextUntaughtConcept(
     const status = learner.conceptStatus[c.id] ?? "untaught";
     return c.goals.includes(goal) && status === "untaught";
   });
-  return candidate?.id ?? null;
+  if (candidate) return candidate.id;
+  // A goal whose scoped slice is empty (thin starter curricula) must not
+  // dead-end at 0% — relax to the full curriculum rather than teach nothing.
+  const any = model.concepts.find(
+    (c) => (learner.conceptStatus[c.id] ?? "untaught") === "untaught",
+  );
+  return any?.id ?? null;
 }
 
 // Deterministic application of a step outcome — the single state-update path

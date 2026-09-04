@@ -170,8 +170,28 @@ export interface RepoHead {
   primaryLanguage: string | null;
 }
 
+// Head resolution is cached briefly: the client polls /api/analyze every 10s
+// while a deep analysis runs, and each uncached resolve costs 2 GitHub API
+// calls against a 60/hr unauthenticated budget (verified exhausted in prod).
+const headCache = new Map<string, { head: RepoHead; at: number }>();
+const HEAD_TTL_MS = 10 * 60_000;
+
 export async function resolveRepoHead(urlInput: string): Promise<RepoHead> {
   const { owner, repo, repoId } = parseGitHubUrl(urlInput);
+
+  const cached = headCache.get(repoId);
+  if (cached && Date.now() - cached.at < HEAD_TTL_MS) return cached.head;
+
+  const head = await resolveRepoHeadUncached(owner, repo, repoId);
+  headCache.set(repoId, { head, at: Date.now() });
+  return head;
+}
+
+async function resolveRepoHeadUncached(
+  owner: string,
+  repo: string,
+  repoId: string,
+): Promise<RepoHead> {
   const meta = (await gh(`/repos/${owner}/${repo}`)) as {
     default_branch: string;
     description: string | null;

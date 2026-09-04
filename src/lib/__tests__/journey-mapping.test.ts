@@ -38,4 +38,22 @@ describe("journey row mapping", () => {
     );
     expect(restored).toEqual(journey);
   });
+
+  // Regression: the model column was silently dropped by the mapping layer,
+  // which white-screened the app after reloading a live-repo journey.
+  it("round-trips a live journey WITH its RepositoryModel", async () => {
+    const { newLiveJourney } = await import("../engine");
+    const { expressModel } = await import("../fixtures/express");
+    const liveModel = { ...expressModel, id: "gh:owner/repo", partial: true };
+    const journey = newLiveJourney(liveModel, "mixed", NOW);
+
+    const restored = assembleJourney(
+      JSON.parse(JSON.stringify(journeyToRow(journey))),
+      [],
+      [],
+    );
+    expect(restored.model).toBeDefined();
+    expect(restored.model!.concepts.length).toBe(liveModel.concepts.length);
+    expect(restored).toEqual(journey);
+  });
 });

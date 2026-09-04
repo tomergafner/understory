@@ -50,8 +50,8 @@ Requires the `RAILWAY_TOKEN` secret and `HEALTH_URL` variable on the repo.
 | `ANTHROPIC_API_KEY` | For live tutoring | — | Without it, the app serves the scripted fixture demo (marked "scripted" in the UI) |
 | `ANTHROPIC_MODEL` | No | `claude-fable-5` | Server-side only |
 | `ANTHROPIC_EFFORT` | No | `medium` | `low` / `medium` / `high` |
-
-`DATABASE_URL` arrives with Phase 4 (see CLAUDE.md §18).
+| `DATABASE_URL` | For durable journeys | — | Without it, journeys live in the browser only (localStorage) |
+| `GITHUB_TOKEN` | Strongly recommended | — | Raises GitHub API limits from 60/hr (per server IP!) to 5,000/hr for live-repo analysis |
 
 ## Docs
 
