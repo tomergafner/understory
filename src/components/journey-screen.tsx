@@ -74,7 +74,7 @@ function defaultView(ready: boolean, journey: LearningJourney | undefined): View
 }
 
 export function JourneyScreen({ journeyId }: { journeyId: string }) {
-  const { journeys, ready, now, upsert } = useJourneysCtx();
+  const { journeys, ready, now, upsert, remove } = useJourneysCtx();
   const journey = journeys.find((j) => j.id === journeyId);
   const [override, setOverride] = useState<View | null>(null);
 
@@ -203,6 +203,7 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
             onRestart={
               journey.id === "demo-express"
                 ? () => {
+                    remove(journey.id);
                     upsert(newDemoJourney(nowMs()));
                     setView({ kind: "analysis" });
                   }

@@ -94,6 +94,29 @@ verification of model mode. Then Phase 4 (Postgres persistence).
 - The e2e suite is only deterministic keyless; with a key configured the
   demo serves live model lessons, so prod content assertions don't apply.
 
+## Phase 4 — Persistence (2026-09-03)
+
+**What works:**
+- Railway Postgres with a 4-table schema: users (cookie identity), journeys
+  (keyed columns + learner jsonb), steps and reviews (append-only jsonb
+  evidence, idempotent inserts keyed by seq).
+- Durable anonymous identity: httpOnly `understory_uid` cookie, 1 year;
+  new users are seeded the fastapi journey server-side.
+- Routes: GET /api/journeys (list, seed-on-first-visit), PUT/DELETE
+  /api/journeys/[id]. Restart-aware upsert: a reused journey id with a new
+  createdAt wipes old evidence rows.
+- Client store: server-first load, localStorage write-through cache and
+  fallback; failed syncs degrade to local mode without breaking the session.
+- Migrations run at container boot (`migrate && next start`, drizzle
+  programmatic migrator); no DATABASE_URL → clean skip (CI/local unchanged).
+- 36 tests incl. journey↔row round-trip; e2e green exercising the fallback.
+
+**What remains:** Phase 5 (live GitHub ingestion — stretch), Phase 6 polish.
+
+**Notable learning:** the append-only steps design made restart a real edge:
+reusing a journey id with fresh state would resurface old step rows without
+the createdAt guard.
+
 **Notable failure/learning:**
 - create-next-app's generated CLAUDE.md pointer clobbered the master
   instructions during scaffold move — caught immediately because Phase 0 was

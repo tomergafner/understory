@@ -183,6 +183,27 @@ cost is still cents at demo scale.
 
 ---
 
+## 013 — Persistence: jsonb payloads + dual-write with local fallback (2026-09-03)
+
+**Decision:** Four tables (users, journeys, steps, reviews). Keyed columns only
+for what we query (user, repo, recency); learner state and step/review records
+are jsonb. The client loads server-first and keeps localStorage as a
+write-through cache and fallback; a failed sync degrades to local mode.
+
+**Why:** The data structures are still expected to change (explicit product
+constraint) — jsonb absorbs churn without migrations. The fallback satisfies
+"the demo keeps working even if external services fail" and keeps CI
+deterministic with no database.
+
+**Alternatives:** Fully normalized schema; Prisma; server-only state with hard
+errors.
+
+**Tradeoff:** Can't query inside learner state with SQL (not needed yet);
+local-mode writes are not synced back when the server returns (acceptable —
+sessions are short; the server copy wins on next load).
+
+---
+
 ## 008 — Demo repository: expressjs/express (2026-09-03)
 
 **Decision:** Use expressjs/express as the bundled demo repository.
