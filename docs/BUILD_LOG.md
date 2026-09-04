@@ -48,9 +48,12 @@ Postgres (Phase 4), live ingestion (Phase 5).
 - The 3-test smoke suite passes locally AND against production.
 - Always-submittable invariant is now in force.
 
-**What remains:** RAILWAY_TOKEN repo secret (user mints in Railway dashboard —
-project tokens aren't mintable via CLI/API auth), then first green CI run.
-Then Phase 3 (real adaptive loop).
+**What remains:** Phase 3 (real adaptive loop).
+
+**Completed after token setup:** first CI run fully green (checks 
+-> e2e -> deploy -> health verification). Custom domain understory.chat added
+on Railway + Cloudflare (CNAME apex -> b9fduj14.up.railway.app, proxied);
+waiting on Cloudflare Universal SSL issuance at time of writing.
 
 **Notable failure/learning:**
 - Railway project tokens can't be created with the CLI session token
